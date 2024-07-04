@@ -97,7 +97,7 @@ export async function encryptUserPassword(password: string): Promise<string> {
 
 export async function verifyJWTToken(req: Request, res: Response, next: NextFunction){
     const token = req.header("Authorization")?.replace("Bearer ","");
-    if(!token) return res.status(403).json({message: "Access Denied!"});
+    if(!token) return res.status(403).json({message: ErrorMsgEnum.ACCESS_DENIED});
     
     const decodeToken = new EncodeDecodeJWTToken(token);
 

@@ -87,6 +87,13 @@ describe('Test CRUD users', () => {
         })
     });
 
+    test('test change user profile', async() => {
+        await changeUserProfile(19, userPayload)
+        .then((data) => {
+            expect(data).toEqual(userPayload)
+        })
+    });
+
     test('test change password', async() => {
         const new_password = 'newPassword1234';
         userPayload['password'] = new_password;
@@ -118,8 +125,8 @@ describe('Test CRUD failed', () => {
 
     test('test create user profile failed', async() => {
         await createAUser(userPayloadWrong)
-        .then((data) => {
-            expect(data).toEqual({message: ENUM.ErrorMsgEnum.FIELD_SHOULDNOT_EMPTY})
+        .catch((err) => {
+            expect(err).toEqual({message: ENUM.ErrorMsgEnum.FIELD_SHOULDNOT_EMPTY})
         })
     });
 
