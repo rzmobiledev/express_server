@@ -9,6 +9,7 @@ import {
 } from '../utils/utils';
 
 import * as ENUM from '../utils/enum';
+import { SequelizeErrorType } from "../utils/type";
 
 const User = require("../models/").User;
 
@@ -70,8 +71,10 @@ module.exports = {
             
             const userResponseObject = new UserResponseObject(_user)
             return res.status(201).json(userResponseObject)
-        } catch(err){
-            return res.status(400).send({message: ENUM.ErrorMsgEnum.URL_NOT_EXISTS});
+        } catch(err: any){
+            if('errors' in err) return res.status(400).send({message: ENUM.ErrorMsgEnum.SOFT_DELETED_DETECT});
+            return res.status(400).send(err);
+
         }
     },
 
@@ -132,6 +135,28 @@ module.exports = {
         } catch(err){
             res.status(400).send({message: ENUM.ErrorMsgEnum.URL_NOT_EXISTS});
         }
+    },
 
+    async softDeleteUser(req: Request, res: Response){
+        const userParams = new UserBodyParams(req);
+        const userId = userParams.getUserId();
+
+        const userExists = await checkEmailifExists(userParams.getEmail());
+        if(!userExists) {
+            return res.status(404).json({message: ENUM.ErrorMsgEnum.USER_NOT_FOUND})
+        }
+        
+        try{
+            
+            User.destroy({
+                where: {id: userId}
+            });
+
+            return res.status(200).json({message: ENUM.SuccessMsgEnum.USER_DELETED})
+
+
+        }catch(err){
+            res.status(400).send({message: ENUM.ErrorMsgEnum.URL_NOT_EXISTS});
+        }
     }
 }

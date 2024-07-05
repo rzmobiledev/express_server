@@ -1,12 +1,7 @@
-import { UserObjectType, ObjectType } from '../src/utils/type';
+import { UserObjectType } from '../src/utils/type';
 const SequelizeMock = require('sequelize-mock');
 const dbMock = new SequelizeMock();
-import { 
-    encryptUserPassword, 
-    checkEmailifExists,
-    isAllUserFieldsSatisfied,
-    UserBodyParams,
-} from '../src/utils/utils';
+
 
 require('dotenv').config();
 
@@ -99,6 +94,10 @@ export async function changeUserProfile(userId: number, payload: UserObjectType)
 
 export async function changeUserPassword(userId: number, payload: UserObjectType){
     return await PostEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId+'/password', 'PUT', payload)
+}
+
+export async function deleteUser(userId: number, payload){
+    return PostEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId, 'DELETE', payload);
 }
 
 export function userFetchMock(): Promise<Response> {

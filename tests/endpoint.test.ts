@@ -21,6 +21,7 @@ import {
     userPayloadWrong,
     changeUserPassword,
     getUserProfile,
+    deleteUser,
 } from './helpers';
 
 import * as Utils from '../src/utils/utils';
@@ -118,11 +119,11 @@ describe('Only for testing', () => {
     //     .mockImplementation(userFetchMock)
     // })
 
-    // test('test get profile', async() => {
-    //     await getUserProfile(4).then((data) => {
-    //         console.log(data);
-    //     })
-    // })
+    test('test delete user', async() => {
+        await deleteUser(1, userPayload).then((data) => {
+            console.log(data);
+        })
+    })
     
 })
 

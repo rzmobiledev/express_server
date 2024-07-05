@@ -23,6 +23,14 @@ module.exports = {
       {
         type: Sequelize.BOOLEAN
       }
+    ),
+
+    await queryInterface.addColumn(
+      'Users',
+      'deletedAt', 
+      {
+        type: Sequelize.DATE
+      }
     )
   },
 
@@ -35,5 +43,6 @@ module.exports = {
      */
     await queryInterface.removeColumn('Users', 'role');
     await queryInterface.removeColumn('Users', 'active');
+    await queryInterface.removeColumn('Users', 'deletedAt');
   }
 };

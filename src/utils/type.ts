@@ -34,3 +34,11 @@ export interface UserBodyInterface {
     json(): object
 }
    
+export interface SequelizeErrorType {
+    name: string;
+    errors: [{
+        message: string,
+        type: string,
+        path: string
+    }]
+}

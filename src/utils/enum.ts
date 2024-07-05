@@ -24,11 +24,13 @@ export const ErrorMsgEnum = Object.freeze({
     ACCESS_DENIED: "Access Denied!",
     TOKEN_EXPIRED: "Your token expired.",
     PASSWORD_EMPTY: "Your password field should not empty",
-    URL_NOT_EXISTS: "URL not exists"
+    URL_NOT_EXISTS: "URL not exists",
+    SOFT_DELETED_DETECT: "This email already exists in database and has soft deletion"
 });
 
 export const SuccessMsgEnum = Object.freeze({
-    PASSWORD_UPDATED: 'Your password has changed.'
+    PASSWORD_UPDATED: 'Your password has changed.',
+    USER_DELETED: 'User deleted.',
 })
 
 export const UserLevelEnum = Object.freeze({
