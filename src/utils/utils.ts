@@ -3,13 +3,33 @@ import dotenv from 'dotenv';
 import {NextFunction, Request, Response } from 'express';
 import { ErrorMsgEnum, PasswordEnum } from './enum';
 import { jwtErrorType, decodedKeyParamsType, UserBodyInterface} from './type';
-import { Op } from '@sequelize/core'
+import { UserObjectType } from './type';
 
 dotenv.config();
 
 const User = require("../models").User;
 const jwt = require("jsonwebtoken");
 
+export class UserResponseObject {
+    readonly id: string;
+    readonly email: string;
+    readonly firstName: string;
+    readonly lastName: string;
+    readonly username: string;
+    readonly role: number;
+    readonly active: boolean;
+
+    constructor(user: typeof User){
+        this.id = user.id;
+        this.email = user.email;
+        this.firstName = user.firstName;
+        this.lastName = user.lastName;
+        this.username = user.username;
+        this.role = user.role;
+        this.active = user.active;
+    }
+    
+}
 
 export class UserBodyParams implements UserBodyInterface{
     private userId: string;

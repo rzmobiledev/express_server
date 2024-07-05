@@ -5,6 +5,7 @@ import {
     checkEmailifExists,
     isAllUserFieldsSatisfied,
     UserBodyParams,
+    UserResponseObject,
 } from '../utils/utils';
 
 import * as ENUM from '../utils/enum';
@@ -46,18 +47,17 @@ module.exports = {
         try{
             const _user: typeof User = await User.create(req.body);
             const hashed_password = await encryptUserPassword(userParams.getPassword());
-            console.log(hashed_password);
             
-            _user.update({
-                password: hashed_password,
-                role: userParams.getRole(),
-                active: userParams.getActive()
-            });
-            return res.status(201).json(_user)
+            _user.password = hashed_password;
+            _user.role = userParams.getRole();
+            _user.active = userParams.getActive();
+            _user.save();
+            
+            const userResponseObject = new UserResponseObject(_user)
+            return res.status(201).json(userResponseObject)
         } catch(err){
             return res.status(400).send(err);
         }
-
     },
 
     async changeUserProfile(req: Request, res: Response){
@@ -79,13 +79,13 @@ module.exports = {
             if(!_user) return res.status(404).json({message: ENUM.ErrorMsgEnum.USER_NOT_FOUND});
 
             const hashed_password = await encryptUserPassword(userParams.getPassword());
-            _user.update({
-                firstName: userParams.getFirstName(),
-                lastName: userParams.getLastName(),
-                password: hashed_password
-            });
-            
-            return res.status(201).json(_user)
+            _user.firstName = userParams.getFirstName();
+            _user.lastName = userParams.getLastName();
+            _user.password = hashed_password;
+            _user.save();
+
+            const userResponseObject = new UserResponseObject(_user)
+            return res.status(201).json(userResponseObject)
 
         } catch(err){
             res.status(400).send(err);
@@ -109,10 +109,10 @@ module.exports = {
             if(!_user) return res.status(404).json({message: ENUM.ErrorMsgEnum.USER_NOT_FOUND});
             
             const hashed_password = await encryptUserPassword(userParams.getPassword());
-            _user.update({
-                password: hashed_password
-            })
-            return res.status(201).json(_user)
+            _user.password = hashed_password;
+            _user.save();
+
+            return res.status(201).json({message: ENUM.SuccessMsgEnum.PASSWORD_UPDATED})
             
         } catch(err){
             res.status(400).send(err);

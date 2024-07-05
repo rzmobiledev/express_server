@@ -26,6 +26,10 @@ export const ErrorMsgEnum = Object.freeze({
     PASSWORD_EMPTY: "Your password field should not empty",
 });
 
+export const SuccessMsgEnum = Object.freeze({
+    PASSWORD_UPDATED: 'Your password has changed.'
+})
+
 export const UserLevelEnum = Object.freeze({
     SUPERADMIN: 1,
     ADMIN: 2,
