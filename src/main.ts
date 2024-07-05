@@ -1,7 +1,8 @@
-import express, {Express, Request, Response} from 'express';
+import express, {Express, NextFunction, Request, Response} from 'express';
 import dotenv from 'dotenv';
 import bodyParser from "body-parser";
 import Routes from './controller/router';
+import {ErrorMsgEnum} from './utils/enum';
 
 dotenv.config()
 
@@ -10,6 +11,7 @@ const hostname: string = String(process.env.HOST) || 'localhost';
 const port: number = Number(process.env.PORT) || 8080;
 
 app.use(bodyParser.json());
+
 app.get("/", (req: Request, res: Response) => {
     res.status(200).json({'message': 'Welcome to my site!'})
 });

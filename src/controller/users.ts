@@ -14,7 +14,7 @@ const User = require("../models/").User;
 
 module.exports = {
 
-    list(req: Request, res: Response){
+    listUser(req: Request, res: Response){
         return User
         .findAll({
             include:[],
@@ -24,6 +24,21 @@ module.exports = {
         })
         .then((user: typeof User) => res.status(200).json(user))
         .catch((err: typeof Error) => res.status(400).send(err));
+    },
+
+    async getUser(req: Request, res: Response){
+        const userId = req.params.id
+        
+        try{
+            const user = await User.findByPk(userId);
+            if(!user) return res.status(404).json({message: ENUM.ErrorMsgEnum.USER_NOT_FOUND});
+
+            const userResponseObject = new UserResponseObject(user);
+            return res.status(200).json(userResponseObject);
+
+        } catch(err){
+            return res.status(400).json({message: ENUM.ErrorMsgEnum.URL_NOT_EXISTS})
+        }
     },
 
     async addUser(req: Request, res: Response): Promise<any>{
@@ -56,7 +71,7 @@ module.exports = {
             const userResponseObject = new UserResponseObject(_user)
             return res.status(201).json(userResponseObject)
         } catch(err){
-            return res.status(400).send(err);
+            return res.status(400).send({message: ENUM.ErrorMsgEnum.URL_NOT_EXISTS});
         }
     },
 
@@ -88,7 +103,7 @@ module.exports = {
             return res.status(201).json(userResponseObject)
 
         } catch(err){
-            res.status(400).send(err);
+            res.status(400).send({message: ENUM.ErrorMsgEnum.URL_NOT_EXISTS});
         }
 
     },
@@ -115,7 +130,7 @@ module.exports = {
             return res.status(201).json({message: ENUM.SuccessMsgEnum.PASSWORD_UPDATED})
             
         } catch(err){
-            res.status(400).send(err);
+            res.status(400).send({message: ENUM.ErrorMsgEnum.URL_NOT_EXISTS});
         }
 
     }

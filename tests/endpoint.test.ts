@@ -20,6 +20,7 @@ import {
     changeUserProfile,
     userPayloadWrong,
     changeUserPassword,
+    getUserProfile,
 } from './helpers';
 
 import * as Utils from '../src/utils/utils';
@@ -56,6 +57,12 @@ describe('Test list users endpoints', () => {
             expect(data).toEqual(response)
         });
     });
+
+    test('test get user profile', async() => {
+        await getUserProfile(4).then((data) => {
+            expect(data).toEqual(userPayload);
+        })
+    })
 
 });
 
@@ -111,10 +118,9 @@ describe('Only for testing', () => {
     //     .mockImplementation(userFetchMock)
     // })
 
-    // test('test change password failed', async() => {
-    //     userPayload['password'] = "";
-    //     await changeUserPassword(3, userPayload).then(data => {
-    //         expect(data).toEqual(userPayload);
+    // test('test get profile', async() => {
+    //     await getUserProfile(4).then((data) => {
+    //         console.log(data);
     //     })
     // })
     

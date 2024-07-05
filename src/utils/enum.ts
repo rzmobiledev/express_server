@@ -24,6 +24,7 @@ export const ErrorMsgEnum = Object.freeze({
     ACCESS_DENIED: "Access Denied!",
     TOKEN_EXPIRED: "Your token expired.",
     PASSWORD_EMPTY: "Your password field should not empty",
+    URL_NOT_EXISTS: "URL not exists"
 });
 
 export const SuccessMsgEnum = Object.freeze({

@@ -77,6 +77,10 @@ export async function getHomepage(){
     return GetEndpointResponse(EndpointsEnum.HOME);
 }
 
+export async function getUserProfile(userId: number){
+    return GetEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId);
+}
+
 export async function showAllUsers(){
     return GetEndpointResponse(EndpointsEnum.ALLUSERS);
 }
