@@ -24,4 +24,11 @@ export const ErrorMsgEnum = Object.freeze({
     ACCESS_DENIED: "Access Denied!",
     TOKEN_EXPIRED: "Your token expired.",
     PASSWORD_EMPTY: "Your password field should not empty",
-})
+});
+
+export const UserLevelEnum = Object.freeze({
+    SUPERADMIN: 1,
+    ADMIN: 2,
+    OPERATOR: 3,
+    STAFF: 4
+});

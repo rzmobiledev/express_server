@@ -18,14 +18,18 @@ export class UserBodyParams implements UserBodyInterface{
     private lastName: string;
     private username: string;
     private password: string;
+    private role: number;
+    private active: boolean;
 
-    constructor(req: Request){
+    constructor(req: Request, role: number = 3, active: boolean = false){
         this.userId = req.params.id;
         this.email = req.body.email;
         this.firstName = req.body.firstName;
         this.lastName = req.body.lastName;
         this.username = req.body.username;
-        this.password = req.body.password
+        this.password = req.body.password;
+        this.role = role;
+        this.active = active;
     }
     json(): object {
         return {
@@ -34,6 +38,8 @@ export class UserBodyParams implements UserBodyInterface{
             firstName: this.getFirstName,
             lastName: this.getLastName,
             username: this.getUsername,
+            role: this.getRole,
+            active: this.getActive
         };
     }
     getUserId(): string {
@@ -53,6 +59,12 @@ export class UserBodyParams implements UserBodyInterface{
     }
     getPassword(): string {
         return this.password;
+    }
+    getRole(): number {
+        return this.role;
+    }
+    getActive(): boolean {
+        return this.active
     }
 }
 
@@ -109,17 +121,13 @@ export async function verifyJWTToken(req: Request, res: Response, next: NextFunc
     }
 }
 
-export async function checkUserifExists(key: string): Promise<boolean> { 
+export async function checkEmailifExists(email: string): Promise<boolean> { 
     const userExists = await User.findOne({
-        where: {
-            [Op.or]: {
-                email: key,
-                id: key
-            }
+        where: {email: email}
            
-        }
-    });
-    return Boolean(userExists);
+        });
+    return Boolean(userExists)
+    
 }
 
 export function isAllUserFieldsSatisfied(firstName: string, lastName: string, email: string, password: string): boolean {

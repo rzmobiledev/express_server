@@ -3,7 +3,7 @@ const SequelizeMock = require('sequelize-mock');
 const dbMock = new SequelizeMock();
 import { 
     encryptUserPassword, 
-    checkUserifExists,
+    checkEmailifExists,
     isAllUserFieldsSatisfied,
     UserBodyParams,
 } from '../src/utils/utils';
@@ -15,7 +15,7 @@ export const userPayload: UserObjectType = {
     lastName: 'Safrizal',
     username: 'rizal',
     email: 'rzmobiledev@gmail.com',
-    password: 'xxxxxxx',
+    password: 'password1234',
     id: 3
 }
 

@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 
 import { 
     encryptUserPassword, 
-    checkUserifExists,
+    checkEmailifExists,
     isAllUserFieldsSatisfied,
     UserBodyParams,
 } from '../utils/utils';
@@ -36,27 +36,31 @@ module.exports = {
         )){
             return res.status(400).send({message: ENUM.ErrorMsgEnum.FIELD_SHOULDNOT_EMPTY});
         }
-
-        const userExists = await checkUserifExists(userParams.getEmail());
+        
+        const userExists = await checkEmailifExists(userParams.getEmail());        
 
         if(userExists){
             return res.status(401).send({message: ENUM.ErrorMsgEnum.EMAIL_ALREADY_REGISTERED});
         }
 
-         return User
-         .create(req.body)
-         .then(async (user: typeof User) => {
-            await encryptUserPassword(userParams.getPassword())
-            .then((hash) => user.update({
-                password: hash
-            }))
-            .then((user: typeof User) => res.status(200).json(user))
-            .catch((err: Error) => res.status(400).send({message: err}));
-         })
-         .catch((err: typeof Error) => res.status(400).send(err))
+        try{
+            const _user: typeof User = await User.create(req.body);
+            const hashed_password = await encryptUserPassword(userParams.getPassword());
+            console.log(hashed_password);
+            
+            _user.update({
+                password: hashed_password,
+                role: userParams.getRole(),
+                active: userParams.getActive()
+            });
+            return res.status(201).json(_user)
+        } catch(err){
+            return res.status(400).send(err);
+        }
+
     },
 
-    changeUserProfile(req: Request, res: Response){
+    async changeUserProfile(req: Request, res: Response){
         const userParams = new UserBodyParams(req);
         const user_id = userParams.getUserId();
 
@@ -69,21 +73,24 @@ module.exports = {
         {
             return res.status(400).send({message: ENUM.ErrorMsgEnum.FIELD_SHOULDNOT_EMPTY});
         }
+        
+        try{
+            const _user: typeof User = await User.findByPk(user_id);
+            if(!_user) return res.status(404).json({message: ENUM.ErrorMsgEnum.USER_NOT_FOUND});
 
-        return User
-        .findByPk(user_id)
-        .then(async (user: typeof User) => {
-            if(!user) return res.status(404).json({message: ENUM.ErrorMsgEnum.USER_NOT_FOUND});
-            return await encryptUserPassword(userParams.getPassword())
-            .then((hash) => user.update({
+            const hashed_password = await encryptUserPassword(userParams.getPassword());
+            _user.update({
                 firstName: userParams.getFirstName(),
                 lastName: userParams.getLastName(),
-                password: hash
-            }))
-            .then(() => res.status(200).json(user))
-            .catch(err => res.status(400).send(err))
-        })
-        .catch((err: typeof Error) => res.status(400).send(err))
+                password: hashed_password
+            });
+            
+            return res.status(201).json(_user)
+
+        } catch(err){
+            res.status(400).send(err);
+        }
+
     },
 
     async changePassword(req: Request, res: Response){
@@ -94,19 +101,22 @@ module.exports = {
             return res.status(405).send({message: ENUM.ErrorMsgEnum.PASSWORD_EMPTY})
         }
 
-        const userExists = await checkUserifExists(userParams.getUserId());
+        const userExists = await checkEmailifExists(userParams.getEmail());
         if(!userExists) return res.status(404).send({message: ENUM.ErrorMsgEnum.USER_NOT_FOUND});
         
-        return User.findByPk(userId)
-        .then(async (user: typeof User) => {
-            await encryptUserPassword(userParams.getPassword())
-            .then((hashedPassword) => user.update({
-                password: hashedPassword
-                })
-                .then(() => res.status(200).json(user))
-            )
-            .catch((err: typeof Error) => res.status(400).send(err))
-        })
-        .catch((err: typeof Error) => res.status(400).send(err));
+        try{
+            const _user: typeof User = await User.findByPk(userId);
+            if(!_user) return res.status(404).json({message: ENUM.ErrorMsgEnum.USER_NOT_FOUND});
+            
+            const hashed_password = await encryptUserPassword(userParams.getPassword());
+            _user.update({
+                password: hashed_password
+            })
+            return res.status(201).json(_user)
+            
+        } catch(err){
+            res.status(400).send(err);
+        }
+
     }
 }
