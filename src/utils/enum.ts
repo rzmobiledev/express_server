@@ -25,12 +25,16 @@ export const ErrorMsgEnum = Object.freeze({
     TOKEN_EXPIRED: "Your token expired.",
     PASSWORD_EMPTY: "Your password field should not empty",
     URL_NOT_EXISTS: "URL not exists",
-    SOFT_DELETED_DETECT: "This email already exists in database and has soft deletion"
+    SOFT_DELETED_DETECT: "This email already exists in database and has soft deletion",
+    LEVEL_NOT_FOUND: "Level not found!",
+    UNKNOWN_ERROR: 'Unknown Error. Report to admin.'
 });
 
 export const SuccessMsgEnum = Object.freeze({
     PASSWORD_UPDATED: 'Your password has changed.',
     USER_DELETED: 'User deleted.',
+    LEVEL_UPDATED: 'Level updated.',
+    LEVEL_DELETED: 'Level deleted.'
 })
 
 export const UserLevelEnum = Object.freeze({

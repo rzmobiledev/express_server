@@ -1,10 +1,11 @@
 import { SuccessMsgEnum } from '../src/utils/enum';
-import { UserObjNoReadOnlyType } from '../src/utils/type';
+import { UserObjNoReadOnlyType, LevelAccessNoIdNoReadonlyType } from '../src/utils/type';
 const SequelizeMock = require('sequelize-mock');
 const dbMock = new SequelizeMock();
 
 
 require('dotenv').config();
+
 
 export const userPayload: UserObjNoReadOnlyType = {
     firstName: 'Rizal',
@@ -44,9 +45,15 @@ export const PasswordEnumTest = Object.freeze({
     HASHED_PASSWORD: 'hashingpasword12#$7x88x'
 })
 
+export const LevelPayload : LevelAccessNoIdNoReadonlyType = {
+    name: 'Staff',
+    level: 4
+}
+
 const EndpointsEnum = Object.freeze({
     HOME: `http://${String(process.env.HOST)}:${Number(process.env.PORT)}` || 'http://localhost:5000',
     ALLUSERS: `http://${String(process.env.HOST)}:${Number(process.env.PORT)}/api/users`,
+    LEVELS: `http://${String(process.env.HOST)}:${Number(process.env.PORT)}/api/levelauth`,
 });
 
 export const GenTokenEnum = Object.freeze({
@@ -57,15 +64,16 @@ export const GenTokenEnum = Object.freeze({
 async function GetEndpointResponse(url: string) {
     return new Promise(async (resolve, reject) => {
         const response = await fetch(url);
+        
         if(!response.ok){
-            reject(`Response status: ${response.status}`);
-        } else {
+            reject(`Response status: ${response}`);
+       } else {
             resolve(response.json())
         }
-    })
+    });
 }
 
-function PostEndpointResponse(url: string, method: string, payload: UserObjNoReadOnlyType){
+function PostEndpointResponse(url: string, method: string, payload: UserObjNoReadOnlyType | LevelAccessNoIdNoReadonlyType){
     return fetch(url, {
             method: method.toUpperCase(),
             body: JSON.stringify(payload),
@@ -105,8 +113,28 @@ export async function changeUserPassword(userId: number, payload: UserObjNoReadO
     return await PostEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId+'/password', 'PUT', payload)
 }
 
-export async function deleteUser(userId: number, payload){
+export async function deleteUser(userId: number, payload: UserObjNoReadOnlyType){
     return PostEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId, 'DELETE', payload);
+}
+
+export async function createLevelAccessUser(payload: LevelAccessNoIdNoReadonlyType){    
+    return PostEndpointResponse(EndpointsEnum.LEVELS, 'POST', payload)
+}
+
+export async function assignLevelAccessToUser(payload: UserObjNoReadOnlyType){
+    return PostEndpointResponse(EndpointsEnum.ALLUSERS+'/levelauth', 'POST', payload)
+}
+
+export async function changeLevelAccessUser(levelId: number, payload: LevelAccessNoIdNoReadonlyType){
+    return PostEndpointResponse(EndpointsEnum.LEVELS+'/'+levelId, 'PUT', payload)
+}
+
+export async function removeLevelAccessUser(levelId: number, payload: LevelAccessNoIdNoReadonlyType){
+    return PostEndpointResponse(EndpointsEnum.LEVELS+'/'+levelId, 'DELETE', payload);
+}
+
+export async function getOneLevelAccess(levelId: number, payload: LevelAccessNoIdNoReadonlyType){
+    return GetEndpointResponse(EndpointsEnum.LEVELS+'/'+levelId);
 }
 
 export function userFetchMock(): Promise<Response> {
@@ -129,4 +157,15 @@ export function deletedUser(): Promise<Response> {
         status: 200,
         json: async () => SuccessMsgEnum.USER_DELETED
     } as Response)
+}
+
+const globalResponse = (payload: any): Promise<Response> => {
+    return Promise.resolve({
+        ok: true,
+        json: async() => payload
+    } as Response)
+}
+
+export function deleteLevelResponse(){
+    return globalResponse({message: SuccessMsgEnum.LEVEL_DELETED});
 }

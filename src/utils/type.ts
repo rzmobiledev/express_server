@@ -1,5 +1,4 @@
 import {Response} from 'express';
-import { UserResponseObject } from './utils';
 
 export function ObjectType<X extends string, T>(url: X, arg: T): T {
     return arg;
@@ -60,13 +59,40 @@ export type ErrorType = {
     get_400_fieldNotEmpty(): Response;
     get_401_emailExist(): Response;
     get_404_userNotFound(): Response;
+    get_404_levelNotFound(): Response;
     get_405_passwdEmpty(): Response;
-    get_globalError(err: any): Response
+    get_globalError(err: any): Response;
 }
 
-export type SuccessType = {
+export type UserSuccessType = {
     get_200_userDeleted(): Response;
-    get_200_userResObject(userObject: UserResponseObject): Response;
-    get_201_userResObject(userObject: UserResponseObject): Response;
+    get_200_userResObject(userObject: UserObjNoPasswordType): Response;
+    get_201_userResObject(userObject: UserObjNoPasswordType): Response;
     get_201_passwordUpdated(): Response;
 }
+
+
+export type LevelSuccessType = {
+    get_200_levelDeleted(): Response;
+    get_200_levelResObject(levelObject: LevelAccessType): Response;
+    get_201_levelResObject(levelObject: LevelAccessType): Response;
+}
+
+
+export type LevelAccessType = {
+    readonly id: number;
+    readonly name: string;
+    readonly level: number;
+}
+
+type LevelNoIdType<T> = {
+    [Property in keyof T as Exclude<Property, 'id'>]: T[Property]
+}
+
+type LevelNoIdNoReadonly<T> = {
+    -readonly [Property in keyof T]: T[Property]
+}
+
+export type LevelAccessNoIdType = LevelNoIdType<LevelAccessType>
+
+export type LevelAccessNoIdNoReadonlyType = LevelNoIdNoReadonly<LevelAccessNoIdType>

@@ -8,22 +8,7 @@ import {
     afterEach,
 } from '@jest/globals';
 
-import {
-    getHomepage,
-    showAllUsers,
-    createAUser,
-    updateUser,
-    userFetchMock,
-    userPayload,
-    hashedPasswordMock,
-    PasswordEnumTest,
-    changeUserProfile,
-    userPayloadWrong,
-    changeUserPassword,
-    getUserProfile,
-    deleteUser,
-    deletedUser,
-} from './helpers';
+import * as helpers from './helpers';
 
 import * as Utils from '../src/utils/utils';
 import * as ENUM from '../src/utils/enum';
@@ -34,8 +19,8 @@ describe('Test Hompage', () => {
 
     test('get response from home endpoint', async() => {
 
-        return await getHomepage().then(data => {
-            const response = {"message": "Welcome to my site!"}
+        return await helpers.getHomepage().then(data => {
+            const response = {message: "Welcome to my site!"}
                 expect(data).toEqual(response)
             });
     });
@@ -45,7 +30,7 @@ describe('Test list users endpoints', () => {
 
     beforeEach(() => {
         jest.spyOn(global, 'fetch')
-        .mockImplementation(userFetchMock)
+        .mockImplementation(helpers.userFetchMock)
     })
 
     afterEach(() => {
@@ -54,15 +39,15 @@ describe('Test list users endpoints', () => {
     });
 
     test('show all users in databases', async() => {
-        return await showAllUsers().then(data => {
-            const response: object = userPayload
+        return await helpers.showAllUsers().then(data => {
+            const response: object = helpers.userPayload
             expect(data).toEqual(response)
         });
     });
 
     test('test get user profile', async() => {
-        await getUserProfile(4).then((data) => {
-            expect(data).toEqual(userPayload);
+        await helpers.getUserProfile(4).then((data) => {
+            expect(data).toEqual(helpers.userPayload);
         })
     })
 
@@ -72,7 +57,7 @@ describe('Test CRUD users', () => {
 
     beforeEach(() => {
         jest.spyOn(global, 'fetch')
-        .mockImplementation(userFetchMock)
+        .mockImplementation(helpers.userFetchMock)
         
     });
  
@@ -83,31 +68,31 @@ describe('Test CRUD users', () => {
     });
 
     test('create a new user', async() => {
-            await createAUser(userPayload).then(data => {
-            expect(data).toEqual(userPayload)
+            await helpers.createAUser(helpers.userPayload).then(data => {
+            expect(data).toEqual(helpers.userPayload)
         });
         
     });
 
     test('test update user profile', async() => {
 
-        await updateUser(19, userPayload).then(data => {
-            expect(data).toEqual(userPayload);
+        await helpers.updateUser(19, helpers.userPayload).then(data => {
+            expect(data).toEqual(helpers.userPayload);
         })
     });
 
     test('test change user profile', async() => {
-        await changeUserProfile(19, userPayload)
+        await helpers.changeUserProfile(19, helpers.userPayload)
         .then((data) => {
-            expect(data).toEqual(userPayload)
+            expect(data).toEqual(helpers.userPayload)
         })
     });
 
     test('test change password', async() => {
         const new_password = 'newPassword1234';
-        userPayload['password'] = new_password;
-        await changeUserPassword(3, userPayload).then(data => {
-            expect(data).toEqual(userPayload);
+        helpers.userPayload['password'] = new_password;
+        await helpers.changeUserPassword(3, helpers.userPayload).then(data => {
+            expect(data).toEqual(helpers.userPayload);
         })
     });
 
@@ -117,11 +102,16 @@ describe('Test delete user', () => {
 
     beforeEach(() => {
         jest.spyOn(global, 'fetch')
-        .mockImplementation(deletedUser)
-    })
+        .mockImplementation(helpers.deletedUser)
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+        jest.restoreAllMocks();
+    });
 
     test('test delete user', async() => {
-        await deleteUser(1, userPayload).then((data) => {
+        await helpers.deleteUser(1, helpers.userPayload).then((data) => {
             expect(data).toEqual(ENUM.SuccessMsgEnum.USER_DELETED)
         })
     })
@@ -131,15 +121,15 @@ describe('Test delete user', () => {
 describe('Test CRUD failed', () => {
 
     test('test create user profile failed', async() => {
-        await createAUser(userPayloadWrong)
+        await helpers.createAUser(helpers.userPayloadWrong)
         .catch((err) => {
             expect(err).toEqual({message: ENUM.ErrorMsgEnum.FIELD_SHOULDNOT_EMPTY})
         })
     });
 
     test('test change password failed', async() => {
-        userPayload['password'] = "";
-        await changeUserPassword(3, userPayload).catch(err => {
+        helpers.userPayload['password'] = "";
+        await helpers.changeUserPassword(3, helpers.userPayload).catch(err => {
             expect(err).toEqual({message: ENUM.ErrorMsgEnum.FIELD_SHOULDNOT_EMPTY});
         })
     })
@@ -149,7 +139,7 @@ describe('Test Encrypt password', () => {
     
     beforeEach(() => {
         jest.spyOn(Utils, 'encryptUserPassword')
-        .mockImplementation(hashedPasswordMock);
+        .mockImplementation(helpers.hashedPasswordMock);
     });
 
     afterEach(() => {
@@ -158,10 +148,10 @@ describe('Test Encrypt password', () => {
     });
 
     test('test encrypting password & show hashed password', async() => {
-        const password = userPayload.password;
+        const password = helpers.userPayload.password;
 
         return await Utils.encryptUserPassword(password).then(data => {
-            expect(data).toEqual(PasswordEnumTest.HASHED_PASSWORD);
+            expect(data).toEqual(helpers.PasswordEnumTest.HASHED_PASSWORD);
         })
     })
 })
@@ -169,12 +159,12 @@ describe('Test Encrypt password', () => {
 describe('Test JWT Token', () => {
     let mockGenToken: any = undefined;
     let mockDecodedToken: any;
-    const email = userPayload.email;
+    const email = helpers.userPayload.email;
     
 
     beforeEach(() => {
         mockGenToken = jest.spyOn(jwt, 'sign').mockImplementation(() => GenTokenEnum.GENERATED_TOKEN)
-        mockDecodedToken = jest.spyOn(jwt, 'verify').mockImplementation(() => userPayload.email)
+        mockDecodedToken = jest.spyOn(jwt, 'verify').mockImplementation(() => helpers.userPayload.email)
     });
 
     afterEach(() => {
@@ -195,7 +185,7 @@ describe('Test JWT Token', () => {
         
         const decode_token = new Utils.EncodeDecodeJWTToken(token);
         return await decode_token.decodeJWTToken().then((data) => {
-            expect(data).toEqual(userPayload.email);
+            expect(data).toEqual(helpers.userPayload.email);
             expect(mockGenToken).toHaveBeenCalled();
             expect(mockDecodedToken).toHaveBeenCalled();
         })
@@ -212,4 +202,65 @@ describe('Test decode JWT with wrong token', () => {
         });
     })
 })
+
+describe('Test auth level user', () => {
+
+    beforeEach(() => {
+        jest.spyOn(global, 'fetch')
+        .mockImplementation((): Promise<Response> => {
+            return Promise.resolve({
+                ok: true,
+                json: async() => helpers.LevelPayload
+            } as Response)
+        })
+    })
+
+    afterEach(() => {
+        jest.clearAllMocks();
+        jest.restoreAllMocks();
+    })
+
+    test('create level access to user', async() => {
+        await helpers.createLevelAccessUser(helpers.LevelPayload)
+        .then((data) => {
+            expect(data).toEqual(helpers.LevelPayload);
+        });
+    });
+
+    test('change level access user', async() => {
+        await helpers.changeLevelAccessUser(6, helpers.LevelPayload)
+        .then((data) => {
+            expect(data).toEqual(helpers.LevelPayload);
+        });
+    });
+
+    test('get one level user access', async() => {
+        await helpers.getOneLevelAccess(3, helpers.LevelPayload)
+        .then((data) => {
+            expect(data).toEqual(helpers.LevelPayload);
+        })
+        .catch((err) => console.log(err))
+        
+    })
+});
+
+describe('Test delete level access', () => {
+
+    beforeEach(() =>{
+        jest.spyOn(global, 'fetch')
+        .mockImplementation(helpers.deleteLevelResponse)
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+        jest.resetAllMocks();
+    });
+
+    test('remove level access user', async() => {
+        await helpers.removeLevelAccessUser(6, helpers.LevelPayload)
+        .then((data) => {
+            expect(data).toEqual({message: ENUM.SuccessMsgEnum.LEVEL_DELETED});
+        });
+    });
+});
 

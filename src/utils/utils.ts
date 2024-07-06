@@ -2,14 +2,15 @@ import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import {NextFunction, Request, Response } from 'express';
 import { ErrorMsgEnum, PasswordEnum, SuccessMsgEnum } from './enum';
-import { jwtErrorType, decodedKeyParamsType, UserBodyInterface, ErrorType, SuccessType, UserObjNoPasswordType} from './type';
+import * as types from './type';
 
 dotenv.config();
 
 const User = require("../models").User;
+const Level = require("../models").AuthLevel;
 const jwt = require("jsonwebtoken");
 
-export class UserResponseObject implements UserObjNoPasswordType{
+export class UserResponseObject implements types.UserObjNoPasswordType{
     readonly id: number;
     readonly email: string;
     readonly firstName: string;
@@ -30,12 +31,10 @@ export class UserResponseObject implements UserObjNoPasswordType{
         this.active = user.active;
         this.createdAt = user.createdAt;
         this.updatedAt = user.updatedAt;
-    }
-    
-    
+    }  
 }
 
-export class UserBodyParams implements UserBodyInterface{
+export class UserBodyParams implements types.UserBodyInterface{
     private userId: string;
     private email: string;
     private firstName: string;
@@ -111,7 +110,7 @@ export class EncodeDecodeJWTToken {
     }
 
     public async decodeJWTToken(): Promise<string|object> {
-        return await jwt.verify(this.key, PasswordEnum.SECRET_KEY, (err: jwtErrorType, decoded: decodedKeyParamsType) => {
+        return await jwt.verify(this.key, PasswordEnum.SECRET_KEY, (err: types.jwtErrorType, decoded: types.decodedKeyParamsType) => {
             if(err) throw(ErrorMsgEnum.TOKEN_EXPIRED)
             return decoded.key;
         })
@@ -163,19 +162,22 @@ export function isAllUserFieldsSatisfied(firstName: string, lastName: string, em
 
 export function errorResHandler(res: Response, error: any): Response {
     if('errors' in error) return res.status(400).send({message: ErrorMsgEnum.SOFT_DELETED_DETECT});
-    return error.status(400).send({message: ErrorMsgEnum.URL_NOT_EXISTS});
+    return res.status(400).send({message: ErrorMsgEnum.URL_NOT_EXISTS});
 }
 
-export class ErrResHandler implements ErrorType{
+export class ErrResHandler implements types.ErrorType{
     private res: Response;
 
     constructor(res: Response){
         this.res = res
     }
+    get_404_levelNotFound(): Response {
+        return this.res.status(400).send({message: ErrorMsgEnum.LEVEL_NOT_FOUND})
+    }
 
     get_globalError(err: any): Response {
         if('errors' in err) return this.res.status(400).send({message: ErrorMsgEnum.SOFT_DELETED_DETECT});
-        return this.res.status(400).send({message: ErrorMsgEnum.URL_NOT_EXISTS});
+        return this.res.status(400).send({message: ErrorMsgEnum.UNKNOWN_ERROR});
     }
     get_404_userNotFound(): Response {
         return this.res.status(404).json({message: ErrorMsgEnum.USER_NOT_FOUND});
@@ -191,7 +193,7 @@ export class ErrResHandler implements ErrorType{
     }
 }
 
-export class SuccessResHandler implements SuccessType {
+export class UserSuccessResHandler implements types.UserSuccessType {
 
     private res: Response;
 
@@ -210,6 +212,38 @@ export class SuccessResHandler implements SuccessType {
     }
     get_201_passwordUpdated(): Response {
         return this.res.status(201).json({message: SuccessMsgEnum.PASSWORD_UPDATED})
-    }
-    
+    } 
 }
+
+export class LevelSuccessResHandler implements types.LevelSuccessType{
+    
+    private res: Response;
+
+    constructor(res: Response){
+        this.res = res
+    }
+
+    get_200_levelDeleted(): Response {
+        return this.res.status(200).json({message: SuccessMsgEnum.LEVEL_DELETED});
+    }
+    get_200_levelResObject(levelObject: types.LevelAccessType): Response {
+        return this.res.status(200).json(levelObject);
+    }
+    get_201_levelResObject(levelObject: types.LevelAccessType): Response {
+        return this.res.status(201).json(levelObject);
+    }
+
+}
+
+export class AuthLevel implements types.LevelAccessType{
+    readonly id: number;
+    readonly name: string;
+    readonly level: number;
+
+    constructor(level: typeof Level){
+        this.id = level.id;
+        this.name = level.name;
+        this.level = level.level;
+    }
+}
+

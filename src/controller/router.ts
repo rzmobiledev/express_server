@@ -1,5 +1,6 @@
 import express from 'express';
 const UserRoutes = require("./users");
+const LevelRoutes = require("./authlevels");
 
 const router = express.Router();
 
@@ -11,5 +12,10 @@ router.put('/users/:id', UserRoutes.changeUserProfile);
 router.put('/users/:id/password', UserRoutes.changePassword);
 router.delete('/users/:id', UserRoutes.softDeleteUser);
 
+router.get('/levelauth', LevelRoutes.getAllLevelsAccess);
+router.get('/levelauth/:id', LevelRoutes.getOneLevelAccess);
+router.post('/levelauth', LevelRoutes.createLevelAccessUser);
+router.put('/levelauth/:id', LevelRoutes.editLevelAccess);
+router.delete('/levelauth/:id', LevelRoutes.removeLevelAccess);
 
 export default router;
