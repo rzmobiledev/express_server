@@ -22,6 +22,7 @@ import {
     changeUserPassword,
     getUserProfile,
     deleteUser,
+    deletedUser,
 } from './helpers';
 
 import * as Utils from '../src/utils/utils';
@@ -108,25 +109,24 @@ describe('Test CRUD users', () => {
         await changeUserPassword(3, userPayload).then(data => {
             expect(data).toEqual(userPayload);
         })
-    })
+    });
 
 })
 
-describe('Only for testing', () => {
+describe('Test delete user', () => {
 
-    // beforeEach(() => {
-    //     jest.spyOn(global, 'fetch')
-    //     .mockImplementation(userFetchMock)
-    // })
+    beforeEach(() => {
+        jest.spyOn(global, 'fetch')
+        .mockImplementation(deletedUser)
+    })
 
     test('test delete user', async() => {
         await deleteUser(1, userPayload).then((data) => {
-            console.log(data);
+            expect(data).toEqual(ENUM.SuccessMsgEnum.USER_DELETED)
         })
     })
     
 })
-
 
 describe('Test CRUD failed', () => {
 

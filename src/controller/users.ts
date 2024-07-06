@@ -6,44 +6,58 @@ import {
     isAllUserFieldsSatisfied,
     UserBodyParams,
     UserResponseObject,
+    errorResHandler,
+    ErrResHandler,
+    SuccessResHandler,
 } from '../utils/utils';
 
 import * as ENUM from '../utils/enum';
-import { SequelizeErrorType } from "../utils/type";
+
 
 const User = require("../models/").User;
 
 module.exports = {
 
-    listUser(req: Request, res: Response){
-        return User
-        .findAll({
-            include:[],
-            order: [
-                ['createdAt', 'DESC']
-            ]
-        })
-        .then((user: typeof User) => res.status(200).json(user))
-        .catch((err: typeof Error) => res.status(400).send(err));
+    async listUser(req: Request, res: Response){
+        const error = new ErrResHandler(res);
+        
+        try{
+            const _user = await User
+            .findAll({
+                attributes: {exclude: ['password', 'deletedAt']},
+                include:[],
+                order: [
+                    ['createdAt', 'DESC']
+                ]
+            });
+
+            return res.status(200).json(_user);
+
+        }catch(err){
+            return error.get_globalError(err);
+        }
     },
 
     async getUser(req: Request, res: Response){
         const userId = req.params.id
-        
+        const error = new ErrResHandler(res);
+
         try{
             const user = await User.findByPk(userId);
-            if(!user) return res.status(404).json({message: ENUM.ErrorMsgEnum.USER_NOT_FOUND});
+            if(!user) return error.get_404_userNotFound();
 
             const userResponseObject = new UserResponseObject(user);
             return res.status(200).json(userResponseObject);
 
         } catch(err){
-            return res.status(400).json({message: ENUM.ErrorMsgEnum.URL_NOT_EXISTS})
+            return errorResHandler(res, err);
         }
     },
 
     async addUser(req: Request, res: Response): Promise<any>{
         const userParams = new UserBodyParams(req);
+        const error = new ErrResHandler(res);
+        const success = new SuccessResHandler(res);
 
         if(!isAllUserFieldsSatisfied(
             userParams.getFirstName(),
@@ -51,13 +65,13 @@ module.exports = {
             userParams.getEmail(),
             userParams.getPassword()
         )){
-            return res.status(400).send({message: ENUM.ErrorMsgEnum.FIELD_SHOULDNOT_EMPTY});
+            return error.get_400_fieldNotEmpty();
         }
         
         const userExists = await checkEmailifExists(userParams.getEmail());        
 
         if(userExists){
-            return res.status(401).send({message: ENUM.ErrorMsgEnum.EMAIL_ALREADY_REGISTERED});
+            return error.get_401_emailExist();
         }
 
         try{
@@ -70,17 +84,18 @@ module.exports = {
             _user.save();
             
             const userResponseObject = new UserResponseObject(_user)
-            return res.status(201).json(userResponseObject)
-        } catch(err: any){
-            if('errors' in err) return res.status(400).send({message: ENUM.ErrorMsgEnum.SOFT_DELETED_DETECT});
-            return res.status(400).send(err);
+            return success.get_201_userResObject(userResponseObject);
 
+        } catch(err: any){
+            return error.get_globalError(err);
         }
     },
 
     async changeUserProfile(req: Request, res: Response){
         const userParams = new UserBodyParams(req);
         const user_id = userParams.getUserId();
+        const error = new ErrResHandler(res);
+        const success = new SuccessResHandler(res);
 
         if(!isAllUserFieldsSatisfied(
             userParams.getFirstName(),
@@ -89,12 +104,12 @@ module.exports = {
             userParams.getPassword()
         ))
         {
-            return res.status(400).send({message: ENUM.ErrorMsgEnum.FIELD_SHOULDNOT_EMPTY});
+            return error.get_400_fieldNotEmpty();
         }
         
         try{
             const _user: typeof User = await User.findByPk(user_id);
-            if(!_user) return res.status(404).json({message: ENUM.ErrorMsgEnum.USER_NOT_FOUND});
+            if(!_user) return error.get_404_userNotFound();
 
             const hashed_password = await encryptUserPassword(userParams.getPassword());
             _user.firstName = userParams.getFirstName();
@@ -103,10 +118,10 @@ module.exports = {
             _user.save();
 
             const userResponseObject = new UserResponseObject(_user)
-            return res.status(201).json(userResponseObject)
+            return success.get_201_userResObject(userResponseObject);
 
         } catch(err){
-            res.status(400).send({message: ENUM.ErrorMsgEnum.URL_NOT_EXISTS});
+            return error.get_globalError(err);
         }
 
     },
@@ -114,37 +129,36 @@ module.exports = {
     async changePassword(req: Request, res: Response){
         const userParams = new UserBodyParams(req);
         const userId = userParams.getUserId();
+        const error = new ErrResHandler(res);
+        const success = new SuccessResHandler(res);
 
         if(!userParams.getPassword()){
-            return res.status(405).send({message: ENUM.ErrorMsgEnum.PASSWORD_EMPTY})
+            return error.get_405_passwdEmpty();
         }
-
-        const userExists = await checkEmailifExists(userParams.getEmail());
-        if(!userExists) return res.status(404).send({message: ENUM.ErrorMsgEnum.USER_NOT_FOUND});
         
         try{
             const _user: typeof User = await User.findByPk(userId);
-            if(!_user) return res.status(404).json({message: ENUM.ErrorMsgEnum.USER_NOT_FOUND});
+            if(!_user) return error.get_404_userNotFound();
             
             const hashed_password = await encryptUserPassword(userParams.getPassword());
             _user.password = hashed_password;
             _user.save();
 
-            return res.status(201).json({message: ENUM.SuccessMsgEnum.PASSWORD_UPDATED})
+            return success.get_201_passwordUpdated();
             
         } catch(err){
-            res.status(400).send({message: ENUM.ErrorMsgEnum.URL_NOT_EXISTS});
+            return errorResHandler(res, err);
         }
     },
 
     async softDeleteUser(req: Request, res: Response){
         const userParams = new UserBodyParams(req);
         const userId = userParams.getUserId();
+        const error = new ErrResHandler(res);
+        const success = new SuccessResHandler(res);
 
-        const userExists = await checkEmailifExists(userParams.getEmail());
-        if(!userExists) {
-            return res.status(404).json({message: ENUM.ErrorMsgEnum.USER_NOT_FOUND})
-        }
+        const userExists = await User.findByPk(userId);
+        if(!userExists) return error.get_404_userNotFound();
         
         try{
             
@@ -152,11 +166,11 @@ module.exports = {
                 where: {id: userId}
             });
 
-            return res.status(200).json({message: ENUM.SuccessMsgEnum.USER_DELETED})
+            return success.get_200_userDeleted();
 
 
         }catch(err){
-            res.status(400).send({message: ENUM.ErrorMsgEnum.URL_NOT_EXISTS});
+            return error.get_globalError(err);
         }
     }
 }

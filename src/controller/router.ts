@@ -1,11 +1,9 @@
-import express, {NextFunction, Request, Response} from 'express';
+import express from 'express';
 const UserRoutes = require("./users");
 
 const router = express.Router();
 
-import {SequelizeErrorType} from '../utils/type';
-
-// importing controller
+// importing controller`
 router.get('/users', UserRoutes.listUser);
 router.get('/users/:id', UserRoutes.getUser);
 router.post('/users', UserRoutes.addUser);

@@ -1,26 +1,35 @@
-import { UserObjectType } from '../src/utils/type';
+import { SuccessMsgEnum } from '../src/utils/enum';
+import { UserObjNoReadOnlyType } from '../src/utils/type';
 const SequelizeMock = require('sequelize-mock');
 const dbMock = new SequelizeMock();
 
 
 require('dotenv').config();
 
-export const userPayload: UserObjectType = {
+export const userPayload: UserObjNoReadOnlyType = {
     firstName: 'Rizal',
     lastName: 'Safrizal',
     username: 'rizal',
     email: 'rzmobiledev@gmail.com',
     password: 'password1234',
-    id: 3
+    id: 3,
+    role: 0,
+    active: false,
+    createdAt: new Date(),
+    updatedAt: new Date()
 }
 
-export const userPayloadWrong: UserObjectType = {
+export const userPayloadWrong: UserObjNoReadOnlyType = {
     firstName: 'Rizal',
     lastName: 'Safrizal',
     username: 'rizal',
     email: '',
     password: 'xxxxxxx',
-    id: 3
+    id: 3,
+    role: 0,
+    active: false,
+    createdAt: new Date(),
+    updatedAt: new Date()
 }
 
 export const UserMock = dbMock.define('user', userPayload, {
@@ -56,7 +65,7 @@ async function GetEndpointResponse(url: string) {
     })
 }
 
-function PostEndpointResponse(url: string, method: string, payload: UserObjectType){
+function PostEndpointResponse(url: string, method: string, payload: UserObjNoReadOnlyType){
     return fetch(url, {
             method: method.toUpperCase(),
             body: JSON.stringify(payload),
@@ -80,19 +89,19 @@ export async function showAllUsers(){
     return GetEndpointResponse(EndpointsEnum.ALLUSERS);
 }
 
-export async function createAUser(payload: UserObjectType){
+export async function createAUser(payload: UserObjNoReadOnlyType){
     return PostEndpointResponse(EndpointsEnum.ALLUSERS, 'POST', payload);
 }
 
-export async function updateUser(userId: number, payload: UserObjectType){
+export async function updateUser(userId: number, payload: UserObjNoReadOnlyType){
     return PostEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId, 'PUT', payload)
 }
 
-export async function changeUserProfile(userId: number, payload: UserObjectType){
+export async function changeUserProfile(userId: number, payload: UserObjNoReadOnlyType){
     return PostEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId, 'PUT', payload)
 }
 
-export async function changeUserPassword(userId: number, payload: UserObjectType){
+export async function changeUserPassword(userId: number, payload: UserObjNoReadOnlyType){
     return await PostEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId+'/password', 'PUT', payload)
 }
 
@@ -112,4 +121,12 @@ export function userFetchMock(): Promise<Response> {
 
 export function hashedPasswordMock(): Promise<string> {
     return Promise.resolve(PasswordEnumTest.HASHED_PASSWORD);
+}
+
+export function deletedUser(): Promise<Response> {
+    return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => SuccessMsgEnum.USER_DELETED
+    } as Response)
 }

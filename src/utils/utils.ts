@@ -1,23 +1,24 @@
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import {NextFunction, Request, Response } from 'express';
-import { ErrorMsgEnum, PasswordEnum } from './enum';
-import { jwtErrorType, decodedKeyParamsType, UserBodyInterface} from './type';
-import { UserObjectType } from './type';
+import { ErrorMsgEnum, PasswordEnum, SuccessMsgEnum } from './enum';
+import { jwtErrorType, decodedKeyParamsType, UserBodyInterface, ErrorType, SuccessType, UserObjNoPasswordType} from './type';
 
 dotenv.config();
 
 const User = require("../models").User;
 const jwt = require("jsonwebtoken");
 
-export class UserResponseObject {
-    readonly id: string;
+export class UserResponseObject implements UserObjNoPasswordType{
+    readonly id: number;
     readonly email: string;
     readonly firstName: string;
     readonly lastName: string;
     readonly username: string;
     readonly role: number;
     readonly active: boolean;
+    readonly createdAt: Date;
+    readonly updatedAt: Date;
 
     constructor(user: typeof User){
         this.id = user.id;
@@ -27,7 +28,10 @@ export class UserResponseObject {
         this.username = user.username;
         this.role = user.role;
         this.active = user.active;
+        this.createdAt = user.createdAt;
+        this.updatedAt = user.updatedAt;
     }
+    
     
 }
 
@@ -155,4 +159,57 @@ export function isAllUserFieldsSatisfied(firstName: string, lastName: string, em
         return true;
     }
     return false;
+}
+
+export function errorResHandler(res: Response, error: any): Response {
+    if('errors' in error) return res.status(400).send({message: ErrorMsgEnum.SOFT_DELETED_DETECT});
+    return error.status(400).send({message: ErrorMsgEnum.URL_NOT_EXISTS});
+}
+
+export class ErrResHandler implements ErrorType{
+    private res: Response;
+
+    constructor(res: Response){
+        this.res = res
+    }
+
+    get_globalError(err: any): Response {
+        if('errors' in err) return this.res.status(400).send({message: ErrorMsgEnum.SOFT_DELETED_DETECT});
+        return this.res.status(400).send({message: ErrorMsgEnum.URL_NOT_EXISTS});
+    }
+    get_404_userNotFound(): Response {
+        return this.res.status(404).json({message: ErrorMsgEnum.USER_NOT_FOUND});
+    }
+    get_400_fieldNotEmpty(): Response {
+        return this.res.status(400).send({message: ErrorMsgEnum.FIELD_SHOULDNOT_EMPTY});
+    }
+    get_401_emailExist(): Response {
+        return this.res.status(401).send({message: ErrorMsgEnum.EMAIL_ALREADY_REGISTERED});
+    }
+    get_405_passwdEmpty(): Response {
+        return this.res.status(405).send({message: ErrorMsgEnum.PASSWORD_EMPTY})
+    }
+}
+
+export class SuccessResHandler implements SuccessType {
+
+    private res: Response;
+
+    constructor(res: Response){
+        this.res = res
+    }
+
+    get_200_userDeleted(): Response {
+        return this.res.status(200).json({message: SuccessMsgEnum.USER_DELETED})
+    }
+    get_200_userResObject(userObject: UserResponseObject): Response {
+        return this.res.status(201).json(userObject);
+    }
+    get_201_userResObject(userObject: UserResponseObject): Response {
+        return this.res.status(201).json(userObject)
+    }
+    get_201_passwordUpdated(): Response {
+        return this.res.status(201).json({message: SuccessMsgEnum.PASSWORD_UPDATED})
+    }
+    
 }
