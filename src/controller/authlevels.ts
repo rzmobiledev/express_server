@@ -28,9 +28,8 @@ module.exports = {
     async createLevelAccessUser(req: Request, res: Response): Promise<any>{
         const success = new utils.LevelSuccessResHandler(res);
         const error = new utils.ErrResHandler(res);
-        
+
         try{
-            
             const _level: typeof AuthLevel = await AuthLevel.create(req.body);            
             const levelObj = new utils.AuthLevel(_level);
             return success.get_201_levelResObject(levelObj);

@@ -14,10 +14,10 @@ export const userPayload: UserObjNoReadOnlyType = {
     email: 'rzmobiledev@gmail.com',
     password: 'password1234',
     id: 3,
-    role: 0,
+    role: 2,
     active: false,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
 }
 
 export const userPayloadWrong: UserObjNoReadOnlyType = {
@@ -30,7 +30,7 @@ export const userPayloadWrong: UserObjNoReadOnlyType = {
     role: 0,
     active: false,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
 }
 
 export const UserMock = dbMock.define('user', userPayload, {

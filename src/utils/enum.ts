@@ -27,6 +27,7 @@ export const ErrorMsgEnum = Object.freeze({
     URL_NOT_EXISTS: "URL not exists",
     SOFT_DELETED_DETECT: "This email already exists in database and has soft deletion",
     LEVEL_NOT_FOUND: "Level not found!",
+    LEVEL_EXISTS: "This level exists in database",
     UNKNOWN_ERROR: 'Unknown Error. Report to admin.'
 });
 

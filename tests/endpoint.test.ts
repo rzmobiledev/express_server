@@ -120,6 +120,11 @@ describe('Test delete user', () => {
 
 describe('Test CRUD failed', () => {
 
+    afterEach(() => {
+        jest.clearAllMocks();
+        jest.restoreAllMocks();
+    });
+
     test('test create user profile failed', async() => {
         await helpers.createAUser(helpers.userPayloadWrong)
         .catch((err) => {
@@ -194,6 +199,11 @@ describe('Test JWT Token', () => {
 })
 
 describe('Test decode JWT with wrong token', () => {
+    afterEach(() => {
+        jest.clearAllMocks();
+        jest.restoreAllMocks();
+    });
+
     test('Decode jwt with wrong token', async() => {
         const token = GenTokenEnum.WRONG_TOKEN    
         const decode_token = new Utils.EncodeDecodeJWTToken(token);
@@ -263,4 +273,3 @@ describe('Test delete level access', () => {
         });
     });
 });
-

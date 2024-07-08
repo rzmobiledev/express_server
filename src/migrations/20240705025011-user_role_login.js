@@ -13,7 +13,12 @@ module.exports = {
       'Users', 
       'role', 
       {
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
+        references: {
+          model: 'Authlevels',
+          key: 'id'
+        },
+        allowNull: false
       }
     ),
 

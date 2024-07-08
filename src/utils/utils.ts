@@ -20,6 +20,7 @@ export class UserResponseObject implements types.UserObjNoPasswordType{
     readonly active: boolean;
     readonly createdAt: Date;
     readonly updatedAt: Date;
+    readonly Authlevel: number;
 
     constructor(user: typeof User){
         this.id = user.id;
@@ -31,7 +32,9 @@ export class UserResponseObject implements types.UserObjNoPasswordType{
         this.active = user.active;
         this.createdAt = user.createdAt;
         this.updatedAt = user.updatedAt;
+        this.Authlevel = user.AuthLevel;
     }  
+    
 }
 
 export class UserBodyParams implements types.UserBodyInterface{
@@ -44,16 +47,17 @@ export class UserBodyParams implements types.UserBodyInterface{
     private role: number;
     private active: boolean;
 
-    constructor(req: Request, role: number = 3, active: boolean = false){
+    constructor(req: Request, active: boolean = false){
         this.userId = req.params.id;
         this.email = req.body.email;
         this.firstName = req.body.firstName;
         this.lastName = req.body.lastName;
         this.username = req.body.username;
         this.password = req.body.password;
-        this.role = role;
+        this.role = req.body.role;
         this.active = active;
     }
+
     json(): object {
         return {
             userId: this.getUserId,
@@ -153,6 +157,15 @@ export async function checkEmailifExists(email: string): Promise<boolean> {
     
 }
 
+export async function checkLevelifExists(id: number): Promise<boolean> { 
+    const userExists = await Level.findOne({
+        where: {id: id}
+           
+        });
+    return Boolean(userExists)
+    
+}
+
 export function isAllUserFieldsSatisfied(firstName: string, lastName: string, email: string, password: string): boolean {
     if(firstName && lastName && email && password) {
         return true;
@@ -171,9 +184,6 @@ export class ErrResHandler implements types.ErrorType{
     constructor(res: Response){
         this.res = res
     }
-    get_404_levelNotFound(): Response {
-        return this.res.status(400).send({message: ErrorMsgEnum.LEVEL_NOT_FOUND})
-    }
 
     get_globalError(err: any): Response {
         if('errors' in err) return this.res.status(400).send({message: ErrorMsgEnum.SOFT_DELETED_DETECT});
@@ -182,11 +192,17 @@ export class ErrResHandler implements types.ErrorType{
     get_404_userNotFound(): Response {
         return this.res.status(404).json({message: ErrorMsgEnum.USER_NOT_FOUND});
     }
+    get_404_levelNotFound(): Response {
+        return this.res.status(404).json({message: ErrorMsgEnum.LEVEL_NOT_FOUND});
+    }
     get_400_fieldNotEmpty(): Response {
         return this.res.status(400).send({message: ErrorMsgEnum.FIELD_SHOULDNOT_EMPTY});
     }
     get_401_emailExist(): Response {
         return this.res.status(401).send({message: ErrorMsgEnum.EMAIL_ALREADY_REGISTERED});
+    }
+    get_401_levelExists(): Response {
+        return this.res.status(401).send({message: ErrorMsgEnum.LEVEL_EXISTS});
     }
     get_405_passwdEmpty(): Response {
         return this.res.status(405).send({message: ErrorMsgEnum.PASSWORD_EMPTY})

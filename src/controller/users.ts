@@ -104,6 +104,7 @@ module.exports = {
             _user.firstName = userParams.getFirstName();
             _user.lastName = userParams.getLastName();
             _user.password = hashed_password;
+            _user.role = userParams.getRole();
             _user.save();
 
             const userResponseObject = new utils.UserResponseObject(_user)
