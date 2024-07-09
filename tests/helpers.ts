@@ -1,5 +1,5 @@
 import { SuccessMsgEnum } from '../src/utils/enum';
-import { UserObjNoReadOnlyType, LevelAccessNoIdNoReadonlyType } from '../src/utils/type';
+import { UserObjNoReadOnlyType, LevelAccessNoIdNoReadonlyType, ArticleFieldNoIdNoRoType } from '../src/utils/type';
 const SequelizeMock = require('sequelize-mock');
 const dbMock = new SequelizeMock();
 
@@ -33,6 +33,21 @@ export const userPayloadWrong: UserObjNoReadOnlyType = {
     updatedAt: new Date(),
 }
 
+export const articlePayload: ArticleFieldNoIdNoRoType = {
+    userId: 3,
+    title: 'Writing First Article',
+    subtitle: 'This is called initial commit',
+    description: 'The first time we wrote article on this website',
+    tags: [
+        {
+            name: 'articles',
+        },
+        {
+            name: 'posts',
+        }
+    ],
+}
+
 export const UserMock = dbMock.define('user', userPayload, {
     instanceMethods: {
         getFullName: function(){
@@ -46,14 +61,34 @@ export const PasswordEnumTest = Object.freeze({
 })
 
 export const LevelPayload : LevelAccessNoIdNoReadonlyType = {
-    name: 'Staff',
-    level: 4
+        name: 'Staff',
+        level: 4
 }
+
+export const ListLevelPayload: LevelAccessNoIdNoReadonlyType[] = [
+    {
+        name: 'SuperAdmin',
+        level: 1
+    },
+    {
+        name: 'Admin',
+        level: 2
+    },
+    {
+        name: 'Operator',
+        level: 3
+    },
+    {
+        name: 'Staff',
+        level: 4
+    }
+]
 
 const EndpointsEnum = Object.freeze({
     HOME: `http://${String(process.env.HOST)}:${Number(process.env.PORT)}` || 'http://localhost:5000',
     ALLUSERS: `http://${String(process.env.HOST)}:${Number(process.env.PORT)}/api/users`,
     LEVELS: `http://${String(process.env.HOST)}:${Number(process.env.PORT)}/api/levelauth`,
+    ARTICLES: `http://${String(process.env.HOST)}:${Number(process.env.PORT)}/api/article`,
 });
 
 export const GenTokenEnum = Object.freeze({
@@ -73,7 +108,7 @@ async function GetEndpointResponse(url: string) {
     });
 }
 
-function PostEndpointResponse(url: string, method: string, payload: UserObjNoReadOnlyType | LevelAccessNoIdNoReadonlyType){
+function PostEndpointResponse(url: string, method: string, payload: UserObjNoReadOnlyType | LevelAccessNoIdNoReadonlyType | ArticleFieldNoIdNoRoType){
     return fetch(url, {
             method: method.toUpperCase(),
             body: JSON.stringify(payload),
@@ -135,6 +170,10 @@ export async function removeLevelAccessUser(levelId: number, payload: LevelAcces
 
 export async function getOneLevelAccess(levelId: number, payload: LevelAccessNoIdNoReadonlyType){
     return GetEndpointResponse(EndpointsEnum.LEVELS+'/'+levelId);
+}
+
+export async function createNewArticle(payload: ArticleFieldNoIdNoRoType){
+    return PostEndpointResponse(EndpointsEnum.ARTICLES, 'POST', payload);
 }
 
 export function userFetchMock(): Promise<Response> {

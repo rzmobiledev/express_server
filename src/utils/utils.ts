@@ -263,3 +263,68 @@ export class AuthLevel implements types.LevelAccessType{
     }
 }
 
+export class Articles implements types.ArticleFieldType, types.ArticleMethodType {
+
+    id: number;
+    userId: number;
+    title: string;
+    subtitle: string;
+    description: string;
+    readonly tags: types.TagObject[];
+
+    constructor(id: number, userId: number, title: string, subtitle: string, description: string, tags: types.TagObject[]){
+        this.id = id;
+        this.userId = userId;
+        this.title = title;
+        this.subtitle = subtitle;
+        this.description = description;
+        this.tags = tags;
+    }
+    
+    getSubtitle(): string {
+        return this.subtitle;
+    }
+    getTags(): types.TagObject[] {
+        return this.tags;
+    }
+
+    getId(): number {
+        return this.id;
+    }
+    getUserId(): number {
+        return this.userId;
+    }
+    getTitle(): string {
+        return this.title;
+    }
+    getDescription(): string {
+        return this.description;
+    }
+}
+
+export class ArticlesBodyParams implements types.ArticleFieldNoIdType {
+    readonly userId: number;
+    readonly title: string;
+    readonly subtitle: string;
+    readonly description: string;
+    readonly tags: types.TagObject[];
+    
+    constructor(req: Request){
+        this.userId = req.body.userId;
+        this.title = req.body.title;
+        this.subtitle = req.body.subtitle;
+        this.description = req.body.description;
+        this.tags = req.body.tags;
+    }
+}
+
+export class ArticleTags implements types.ArticleTagsType {
+    
+    readonly id: number;
+    readonly name: string;
+
+    constructor(id: number, name: string){
+        this.id = id;
+        this.name = name;
+    }
+}

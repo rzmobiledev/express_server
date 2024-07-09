@@ -1,7 +1,12 @@
-import {describe, expect, test, jest} from '@jest/globals';
+import {describe, expect, test, jest, beforeEach, afterEach} from '@jest/globals';
 import {sum, mockSum} from './sum';
 
 describe('sum module', () => {
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.resetAllMocks();
+  })
 
   const mockCallback = jest.fn((x: number)=> 42 + x);
 

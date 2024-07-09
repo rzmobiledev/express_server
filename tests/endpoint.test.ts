@@ -273,3 +273,28 @@ describe('Test delete level access', () => {
         });
     });
 });
+
+// describe('Test create article and tags', () => {
+
+    // test('create level access to user', async() => {
+    //     await helpers.createLevelAccessUser(helpers.LevelPayload)
+    //     .then((data) => {
+    //         expect(data).toEqual(helpers.LevelPayload);
+    //     });
+    // });
+
+    // test('create a new user', async() => {
+    //         await helpers.createAUser(helpers.userPayload).then(data => {
+    //         expect(data).toEqual(helpers.userPayload)
+    //     });
+        
+    // });
+
+    // test('create articles', async() => {
+    //     await helpers.createNewArticle(helpers.articlePayload)
+    //     .then((data) => console.log(data))
+    //     .catch((err) => console.log(err)
+    //     )
+    // })
+
+// })

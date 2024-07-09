@@ -78,6 +78,13 @@ export type LevelSuccessType = {
     get_201_levelResObject(levelObject: LevelAccessType): Response;
 }
 
+type NoIdType<T> = {
+    [Property in keyof T as Exclude<Property, 'id'>]: T[Property]
+}
+
+type NoReadonly<T> = {
+    -readonly [Property in keyof T]: T[Property]
+}
 
 export type LevelAccessType = {
     readonly id: number;
@@ -85,14 +92,47 @@ export type LevelAccessType = {
     readonly level: number;
 }
 
-type LevelNoIdType<T> = {
-    [Property in keyof T as Exclude<Property, 'id'>]: T[Property]
+export type LevelAccessNoIdType = NoIdType<LevelAccessType>
+
+export type LevelAccessNoIdNoReadonlyType = NoReadonly<LevelAccessNoIdType>
+
+
+export type ArticleFieldType = {
+    readonly id: number;
+    readonly userId: number;
+    readonly title: string;
+    readonly subtitle: string;
+    readonly description: string;
+    readonly tags: TagObjNoId[];
 }
 
-type LevelNoIdNoReadonly<T> = {
-    -readonly [Property in keyof T]: T[Property]
+export type ArticleFieldNoIdType = NoIdType<ArticleFieldType>
+
+export type ArticleFieldNoIdNoRoType = NoReadOnlyType<NoIdType<ArticleFieldType>>
+
+
+export type ArticleMethodType = {
+    getId(): number;
+    getUserId(): number;
+    getTitle(): string;
+    getSubtitle(): string;
+    getDescription(): string;
+    getTags(): TagObject[]
 }
 
-export type LevelAccessNoIdType = LevelNoIdType<LevelAccessType>
+type ArticleTag = {
+    selfGranted: Boolean
+}
 
-export type LevelAccessNoIdNoReadonlyType = LevelNoIdNoReadonly<LevelAccessNoIdType>
+export type TagObject = {
+    id: number;
+    name: string;
+}
+
+export type TagObjNoId = NoIdType<TagObject>
+
+export type ArticleTagsType = {
+    readonly id: number;
+    readonly name: string;
+}
+
