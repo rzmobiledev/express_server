@@ -60,6 +60,7 @@ export type ErrorType = {
     get_401_emailExist(): Response;
     get_404_userNotFound(): Response;
     get_404_levelNotFound(): Response;
+    get_404_articleNotFound(): Response;
     get_405_passwdEmpty(): Response;
     get_globalError(err: any): Response;
 }
@@ -69,6 +70,10 @@ export type UserSuccessType = {
     get_200_userResObject(userObject: UserObjNoPasswordType): Response;
     get_201_userResObject(userObject: UserObjNoPasswordType): Response;
     get_201_passwordUpdated(): Response;
+}
+
+export type ArticleSuccessType = {
+    get_200_articleDeleted(): Response;
 }
 
 
@@ -107,11 +112,9 @@ export type ArticleFieldType = {
 }
 
 export type ArticleFieldNoIdType = NoIdType<ArticleFieldType>
-
 export type ArticleFieldNoIdNoRoType = NoReadOnlyType<NoIdType<ArticleFieldType>>
 
-
-export type ArticleMethodType = {
+export type ArticleMethodGetType = {
     getId(): number;
     getUserId(): number;
     getTitle(): string;
@@ -120,6 +123,7 @@ export type ArticleMethodType = {
     getTags(): TagObject[]
 }
 
+
 type ArticleTag = {
     selfGranted: Boolean
 }
@@ -127,6 +131,8 @@ type ArticleTag = {
 export type TagObject = {
     id: number;
     name: string;
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
 export type TagObjNoId = NoIdType<TagObject>
@@ -134,5 +140,7 @@ export type TagObjNoId = NoIdType<TagObject>
 export type ArticleTagsType = {
     readonly id: number;
     readonly name: string;
+    readonly createdAt?: Date;
+    readonly updatedAt?: Date;
 }
 

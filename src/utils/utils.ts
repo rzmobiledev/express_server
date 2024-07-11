@@ -3,11 +3,14 @@ import dotenv from 'dotenv';
 import {NextFunction, Request, Response } from 'express';
 import { ErrorMsgEnum, PasswordEnum, SuccessMsgEnum } from './enum';
 import * as types from './type';
+import { Model } from 'sequelize';
 
 dotenv.config();
 
 const User = require("../models").User;
 const Level = require("../models").AuthLevel;
+const Article = require('../models').Article;
+const Tag = require('../models').Tag;
 const jwt = require("jsonwebtoken");
 
 export class UserResponseObject implements types.UserObjNoPasswordType{
@@ -186,11 +189,19 @@ export class ErrResHandler implements types.ErrorType{
     }
 
     get_globalError(err: any): Response {
-        if('errors' in err) return this.res.status(400).send({message: ErrorMsgEnum.SOFT_DELETED_DETECT});
+        const error = 'errors';
+        const name = 'name';
+        const isForeignKeyError: boolean = name in err && err.name === 'SequelizeForeignKeyConstraintError';
+
+        if(error in err) return this.res.status(400).send({message: ErrorMsgEnum.SOFT_DELETED_DETECT});
+        else if(isForeignKeyError) return this.res.status(400).send({message: err.parent.detail});
         return this.res.status(400).send({message: ErrorMsgEnum.UNKNOWN_ERROR});
     }
+    get_404_articleNotFound(): Response {
+        return this.res.status(404).json({message: ErrorMsgEnum.ARTICLE_NOT_FOUND});
+    }
     get_404_userNotFound(): Response {
-        return this.res.status(404).json({message: ErrorMsgEnum.USER_NOT_FOUND});
+        return this.res.status(404).json({message: ErrorMsgEnum.ID_NOT_FOUND});
     }
     get_404_levelNotFound(): Response {
         return this.res.status(404).json({message: ErrorMsgEnum.LEVEL_NOT_FOUND});
@@ -231,6 +242,21 @@ export class UserSuccessResHandler implements types.UserSuccessType {
     } 
 }
 
+export class ArticleSuccessResHandler implements types.ArticleSuccessType {
+
+    private res: Response;
+
+    constructor(res: Response){
+        this.res = res
+    }
+
+    get_200_articleDeleted(): Response {
+        return this.res.status(200).json({message: SuccessMsgEnum.ARTICLE_DELETED})
+    }
+
+
+}
+
 export class LevelSuccessResHandler implements types.LevelSuccessType{
     
     private res: Response;
@@ -263,7 +289,7 @@ export class AuthLevel implements types.LevelAccessType{
     }
 }
 
-export class Articles implements types.ArticleFieldType, types.ArticleMethodType {
+export class Articles implements types.ArticleFieldType, types.ArticleMethodGetType {
 
     id: number;
     userId: number;
@@ -318,13 +344,97 @@ export class ArticlesBodyParams implements types.ArticleFieldNoIdType {
     }
 }
 
+export class ArticlesObjectResponse{
+    private id: number;
+    private userId: number;
+    private title: string;
+    private subtitle: string;
+    private description: string;
+    private createdAt: Date;
+    private updatedAt: Date;
+    private tags: types.TagObject[]
+    private extraTags: types.TagObject[]
+
+    constructor(req: Request, tags: types.TagObject[], extraTags: types.TagObject[]){
+        this.id = Number(req.params.id);
+        this.userId = req.body.userId;
+        this.title = req.body.title;
+        this.subtitle = req.body.subtitle;
+        this.description = req.body.description;
+        this.createdAt = new Date();
+        this.updatedAt = new Date();
+        this.tags = tags;
+        this.extraTags = extraTags;
+    }
+
+    json(){
+        return {
+            id: this.id,
+            userId: this.userId,
+            title: this.title,
+            subtitle: this.subtitle,
+            description: this.description,
+            createdAt: this.createdAt,
+            updatedAt: this.updatedAt,
+            tags: this.tags.length > 0 ? this.tags : this.extraTags
+        }
+    }
+}
+
 export class ArticleTags implements types.ArticleTagsType {
     
     readonly id: number;
     readonly name: string;
+    readonly createdAt?: Date;
+    readonly updatedAt?: Date;
 
-    constructor(id: number, name: string){
+    constructor(id: number, name: string, createdAt: Date | undefined, updatedAt: Date | undefined){
         this.id = id;
         this.name = name;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
+}
+
+export async function createUpdateArticleTags(tagObject: types.TagObject[], article: typeof Article){
+        const isTagExist = tagObject.length > 0;
+        if(isTagExist){ 
+            for(const tagName of tagObject){
+                const [tag, created] = await Tag.findOrCreate({
+                    where: { name: tagName.name }
+                })
+                
+                if(created) await article.addTag(tag);
+            }
+        }
+}
+
+export function assignIdToTagsObject(articleTags: types.TagObject[], payload: types.ArticleFieldNoIdNoRoType): 
+types.TagObject[]{
+
+    const tagObjects = new Array();
+    const isTagExist = payload.tags.length > 0;
+
+    if(isTagExist){
+        for(let i=0; i < payload.tags.length; i++){
+            const new_articleTags = new ArticleTags(
+                articleTags[i]?.id ?? undefined, 
+                payload.tags[i].name,
+                articleTags[i]?.createdAt ?? new Date,
+                articleTags[i]?.updatedAt ?? new Date
+            );
+            tagObjects.push(new_articleTags);
+        }
+
+    }   
+    return tagObjects;
+}
+
+export function filterOnlyTagsID(articleTags: types.TagObject[]): number[]{
+
+    const tagsIDs = [];
+    for(let i=0; i < articleTags.length; i++){
+        tagsIDs.push(articleTags[i].id);
+    }
+    return tagsIDs;
 }

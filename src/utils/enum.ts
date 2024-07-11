@@ -19,7 +19,8 @@ export const PasswordEnum = Object.freeze({
 
 export const ErrorMsgEnum = Object.freeze({
     FIELD_SHOULDNOT_EMPTY: "Make sure all fields not empty!",
-    USER_NOT_FOUND: "User Not Found!",
+    ID_NOT_FOUND: "ID Not Found!",
+    ARTICLE_NOT_FOUND: "Article not found",
     EMAIL_ALREADY_REGISTERED: "This email is already registered.",
     ACCESS_DENIED: "Access Denied!",
     TOKEN_EXPIRED: "Your token expired.",
@@ -35,7 +36,8 @@ export const SuccessMsgEnum = Object.freeze({
     PASSWORD_UPDATED: 'Your password has changed.',
     USER_DELETED: 'User deleted.',
     LEVEL_UPDATED: 'Level updated.',
-    LEVEL_DELETED: 'Level deleted.'
+    LEVEL_DELETED: 'Level deleted.',
+    ARTICLE_DELETED: 'Article deleted.',
 })
 
 export const UserLevelEnum = Object.freeze({

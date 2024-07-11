@@ -20,5 +20,9 @@ router.put('/levelauth/:id', LevelRoutes.editLevelAccess);
 router.delete('/levelauth/:id', LevelRoutes.removeLevelAccess);
 
 router.post('/article', Articles.createNewArticle);
+router.put('/article/:id', Articles.updateArticle);
+router.get('/article', Articles.getAllArticles);
+router.get('/article/:id', Articles.getOneArticle);
+router.delete('/article/:id', Articles.deleteArticle);
 
 export default router;
