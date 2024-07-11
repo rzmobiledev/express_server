@@ -47,7 +47,7 @@ module.exports = {
         const userParams = new utils.UserBodyParams(req);
         const error = new utils.ErrResHandler(res);
         const success = new utils.UserSuccessResHandler(res);
-
+        
         if(!utils.isAllUserFieldsSatisfied(
             userParams.getFirstName(),
             userParams.getLastName(),
@@ -152,7 +152,7 @@ module.exports = {
         
         try{
             
-            User.destroy({
+            await User.destroy({
                 where: {id: userId}
             });
 

@@ -30,12 +30,11 @@ describe('Test list users endpoints', () => {
 
     beforeEach(() => {
         jest.spyOn(global, 'fetch')
-        .mockImplementation(helpers.userFetchMock)
+        .mockImplementation(jest.fn(helpers.userFetchMock))
     })
 
     afterEach(() => {
-        jest.clearAllMocks();
-        jest.restoreAllMocks();
+       jest.clearAllMocks();
     });
 
     test('show all users in databases', async() => {
@@ -57,14 +56,12 @@ describe('Test CRUD users', () => {
 
     beforeEach(() => {
         jest.spyOn(global, 'fetch')
-        .mockImplementation(helpers.userFetchMock)
+        .mockImplementation(jest.fn(helpers.userFetchMock))
         
     });
  
     afterEach(() => {
         jest.clearAllMocks();
-        jest.restoreAllMocks();
-        
     });
 
     test('create a new user', async() => {
@@ -102,12 +99,11 @@ describe('Test delete user', () => {
 
     beforeEach(() => {
         jest.spyOn(global, 'fetch')
-        .mockImplementation(helpers.deletedUser)
+        .mockImplementation(jest.fn(helpers.deletedUser))
     });
 
     afterEach(() => {
         jest.clearAllMocks();
-        jest.restoreAllMocks();
     });
 
     test('test delete user', async() => {
@@ -122,8 +118,7 @@ describe('Test CRUD failed', () => {
 
     afterEach(() => {
         jest.clearAllMocks();
-        jest.restoreAllMocks();
-    });
+    })
 
     test('test create user profile failed', async() => {
         await helpers.createAUser(helpers.userPayloadWrong)
@@ -144,12 +139,11 @@ describe('Test Encrypt password', () => {
     
     beforeEach(() => {
         jest.spyOn(Utils, 'encryptUserPassword')
-        .mockImplementation(helpers.hashedPasswordMock);
+        .mockImplementation(jest.fn(helpers.hashedPasswordMock));
     });
 
     afterEach(() => {
         jest.clearAllMocks();
-        jest.restoreAllMocks();
     });
 
     test('test encrypting password & show hashed password', async() => {
@@ -168,13 +162,12 @@ describe('Test JWT Token', () => {
     
 
     beforeEach(() => {
-        mockGenToken = jest.spyOn(jwt, 'sign').mockImplementation(() => GenTokenEnum.GENERATED_TOKEN)
-        mockDecodedToken = jest.spyOn(jwt, 'verify').mockImplementation(() => helpers.userPayload.email)
+        mockGenToken = jest.spyOn(jwt, 'sign').mockImplementation(jest.fn(() => GenTokenEnum.GENERATED_TOKEN))
+        mockDecodedToken = jest.spyOn(jwt, 'verify').mockImplementation(jest.fn(() => helpers.userPayload.email))
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
-        jest.restoreAllMocks();
+       jest.clearAllMocks();
     });
 
     test('test generate access key token', () => {
@@ -194,15 +187,10 @@ describe('Test JWT Token', () => {
             expect(mockGenToken).toHaveBeenCalled();
             expect(mockDecodedToken).toHaveBeenCalled();
         })
-
     })
 })
 
 describe('Test decode JWT with wrong token', () => {
-    afterEach(() => {
-        jest.clearAllMocks();
-        jest.restoreAllMocks();
-    });
 
     test('Decode jwt with wrong token', async() => {
         const token = GenTokenEnum.WRONG_TOKEN    
@@ -217,18 +205,17 @@ describe('Test auth level user', () => {
 
     beforeEach(() => {
         jest.spyOn(global, 'fetch')
-        .mockImplementation((): Promise<Response> => {
+        .mockImplementation(jest.fn((): Promise<Response> => {
             return Promise.resolve({
                 ok: true,
                 json: async() => helpers.LevelPayload
             } as Response)
-        })
+        }))
     })
 
     afterEach(() => {
-        jest.clearAllMocks();
-        jest.restoreAllMocks();
-    })
+       jest.clearAllMocks();
+    });
 
     test('create level access to user', async() => {
         await helpers.createLevelAccessUser(helpers.LevelPayload)
@@ -256,14 +243,14 @@ describe('Test auth level user', () => {
 
 describe('Test delete level access', () => {
 
-    beforeEach(() =>{
+    beforeEach(() => {
         jest.spyOn(global, 'fetch')
-        .mockImplementation(helpers.deleteLevelResponse)
+        .mockImplementation(jest.fn(helpers.deleteLevelResponse))
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
-        jest.resetAllMocks();
+       jest.clearAllMocks();
+       jest.restoreAllMocks()
     });
 
     test('remove level access user', async() => {
@@ -274,27 +261,42 @@ describe('Test delete level access', () => {
     });
 });
 
-// describe('Test create article and tags', () => {
+describe('Test create article and tags', () => {
 
-    // test('create level access to user', async() => {
-    //     await helpers.createLevelAccessUser(helpers.LevelPayload)
-    //     .then((data) => {
-    //         expect(data).toEqual(helpers.LevelPayload);
-    //     });
+    // beforeEach(() => {
+    //     jest.spyOn(global, 'fetch')
+    //     .mockImplementation(jest.fn(helpers.createArticleResponse));
     // });
 
-    // test('create a new user', async() => {
-    //         await helpers.createAUser(helpers.userPayload).then(data => {
-    //         expect(data).toEqual(helpers.userPayload)
-    //     });
-        
+    // afterEach(() => {
+    //    jest.clearAllMocks();
+    //    jest.restoreAllMocks();
     // });
 
     // test('create articles', async() => {
     //     await helpers.createNewArticle(helpers.articlePayload)
+    //     // .then((data) => expect(data).toEqual(helpers.articlePayload))
     //     .then((data) => console.log(data))
-    //     .catch((err) => console.log(err)
-    //     )
-    // })
+    // });
 
-// })
+    test('update articles', async() => {
+        await helpers.updateArticle(8, helpers.articlePayload)
+        // .then((data) => expect(data).toEqual(helpers.articlePayload))
+        .then((data) => console.log(data))
+    });
+
+    // test('get all articles', async() => {
+    //     await helpers.getAllArticles()
+    //     .then((data) => expect(data).toEqual(helpers.articlePayload))
+    // });
+
+    // test('get one articles', async() => {
+    //     await helpers.getOneArticle(15)
+    //     .then((data) => expect(data).toEqual(helpers.articlePayload))
+    // });
+    //  test('delete one articles', async() => {
+    //     await helpers.deleteArticle(7, helpers.articlePayload)
+    //     // .then((data) => expect(data).toEqual(helpers.articlePayload))
+    //     .then((data) => console.log(data))
+    // });
+})

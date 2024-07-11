@@ -15,7 +15,8 @@ module.exports = (sequelize, DataTypes) => {
         Tag.belongsToMany(models.Article, {
             through: models.ArticleTag,
             as: 'articles',
-            foreignKey: 'tagId'
+            foreignKey: 'tagId',
+            onDelete: 'CASCADE',
         });
     }
   }

@@ -11,7 +11,12 @@ module.exports = (sequelize, DataTypes) => {
             through: models.ArticleTag,
             as: 'tags',
             foreignKey: 'articleId'
-    });
+      });
+
+      Article.belongsTo(models.User, {
+        foreignKey: 'userId',
+        onDelete: 'CASCADE'
+      });
     }
   }
   Article.init({

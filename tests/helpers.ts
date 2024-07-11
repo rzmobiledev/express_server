@@ -40,11 +40,14 @@ export const articlePayload: ArticleFieldNoIdNoRoType = {
     description: 'The first time we wrote article on this website',
     tags: [
         {
-            name: 'articles',
+            name: 'blog',
         },
-        {
-            name: 'posts',
-        }
+        // {
+        //     name: 'newspaper',
+        // },
+        // {
+        //     name: 'articles',
+        // }
     ],
 }
 
@@ -176,6 +179,23 @@ export async function createNewArticle(payload: ArticleFieldNoIdNoRoType){
     return PostEndpointResponse(EndpointsEnum.ARTICLES, 'POST', payload);
 }
 
+export async function updateArticle(levelId: number, payload: ArticleFieldNoIdNoRoType){
+    return PostEndpointResponse(EndpointsEnum.ARTICLES+'/'+levelId, 'PUT', payload);
+}
+
+export async function getAllArticles(){
+    return GetEndpointResponse(EndpointsEnum.ARTICLES);
+}
+
+export async function getOneArticle(articleId: number){
+    return GetEndpointResponse(EndpointsEnum.ARTICLES+'/'+articleId);
+}
+
+export async function deleteArticle(levelId: number, payload: ArticleFieldNoIdNoRoType){
+    return PostEndpointResponse(EndpointsEnum.ARTICLES+'/'+levelId, 'DELETE', payload);
+}
+
+
 export function userFetchMock(): Promise<Response> {
     return new Promise((resolve, reject) => {
         resolve({
@@ -207,4 +227,8 @@ const globalResponse = (payload: any): Promise<Response> => {
 
 export function deleteLevelResponse(){
     return globalResponse({message: SuccessMsgEnum.LEVEL_DELETED});
+}
+
+export function createArticleResponse(){
+    return globalResponse(articlePayload);
 }

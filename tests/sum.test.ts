@@ -3,11 +3,6 @@ import {sum, mockSum} from './sum';
 
 describe('sum module', () => {
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.resetAllMocks();
-  })
-
   const mockCallback = jest.fn((x: number)=> 42 + x);
 
   test('adds 1 + 2 to equal 3', () => {
