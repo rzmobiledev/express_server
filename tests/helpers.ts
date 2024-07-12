@@ -42,8 +42,14 @@ export const articlePayload: ArticleFieldNoIdNoRoType = {
         {
             name: 'blog',
         },
+        {
+            name: 'twitter',
+        },
         // {
         //     name: 'newspaper',
+        // },
+        // {
+        //     name: 'articles',
         // },
         // {
         //     name: 'articles',
@@ -194,7 +200,6 @@ export async function getOneArticle(articleId: number){
 export async function deleteArticle(levelId: number, payload: ArticleFieldNoIdNoRoType){
     return PostEndpointResponse(EndpointsEnum.ARTICLES+'/'+levelId, 'DELETE', payload);
 }
-
 
 export function userFetchMock(): Promise<Response> {
     return new Promise((resolve, reject) => {

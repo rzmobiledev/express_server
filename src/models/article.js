@@ -10,7 +10,8 @@ module.exports = (sequelize, DataTypes) => {
       Article.belongsToMany(models.Tag, {
             through: models.ArticleTag,
             as: 'tags',
-            foreignKey: 'articleId'
+            foreignKey: 'articleId',
+            otherKey: 'tagId'
       });
 
       Article.belongsTo(models.User, {

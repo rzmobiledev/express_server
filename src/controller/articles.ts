@@ -53,8 +53,7 @@ module.exports = {
                 description: bodyParams.description
             });
 
-            await utils.createArticleTags(bodyParams.tags, article);
-            
+            await utils.createUpdateArticleTags(bodyParams.tags, article);
             const result = await Article.findByPk(article.id, {
                 include: [{
                     model: Tag,
@@ -86,15 +85,12 @@ module.exports = {
             const articleTagsObject = JSON.stringify(article?.tags);
             const articleTagsToJson = articleTagsObject ? JSON.parse(articleTagsObject) : [];
             const tagObjectsWithID = utils.assignIdToTagsObject(articleTagsToJson, bodyParams);
-            // console.log(tagObjectsWithID);
-            
             
             await article.update(bodyParams);
-            await utils.updateArticleTags(tagObjectsWithID, article);            
+            await utils.createUpdateArticleTags(bodyParams.tags, article);            
             
             const response = new utils.ArticlesObjectResponse(req, tagObjectsWithID, articleTagsToJson);
             return res.status(201).json(response.json())
-            // return res.status(201).json(article)
 
         }catch(err){
             return error.get_globalError(err);
@@ -105,31 +101,18 @@ module.exports = {
         const error = new utils.ErrResHandler(res);
         const success = new utils.ArticleSuccessResHandler(res);
         const articleId = Number(req.params.id)
+        console.log(articleId + 'article id');
         
         try{
-            
-            const article = await Article.findByPk(articleId, {
-                include: [{
-                    model: Tag,
-                    as: 'tags'
-                }]
+            const article = await ArticleTag.destroy({
+                where: {articleId: articleId}
             });
+
             if(!article) return error.get_404_articleNotFound();
 
-            const articleTagsObject = JSON.stringify(article?.tags);
-            const articleTagsToJson = articleTagsObject ? JSON.parse(articleTagsObject) : [];
-            const allTagsID = utils.filterOnlyTagsID(articleTagsToJson);
-            
-            if(allTagsID){
-                await article.removeTags(allTagsID)
-                await Tag.destroy({
-                    where: {id: allTagsID}
-                });
-            }
             await Article.destroy({
                 where: {id: articleId}
             });
-
 
              return success.get_200_articleDeleted();
             

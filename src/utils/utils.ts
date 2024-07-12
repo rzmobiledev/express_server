@@ -191,10 +191,10 @@ export class ErrResHandler implements types.ErrorType{
     get_globalError(err: any): Response {
         const error = 'errors';
         const name = 'name';
-        const isForeignKeyNotFound: boolean = name in err && err.name === 'SequelizeForeignKeyConstraintError';
+        const isForeignKeyError: boolean = name in err && err.name === 'SequelizeForeignKeyConstraintError';
 
         if(error in err) return this.res.status(400).send({message: ErrorMsgEnum.SOFT_DELETED_DETECT});
-        else if(isForeignKeyNotFound) return this.res.status(400).send({message: ErrorMsgEnum.ID_NOT_FOUND});
+        else if(isForeignKeyError) return this.res.status(400).send({message: err.parent.detail});
         return this.res.status(400).send({message: ErrorMsgEnum.UNKNOWN_ERROR});
     }
     get_404_articleNotFound(): Response {
@@ -394,24 +394,18 @@ export class ArticleTags implements types.ArticleTagsType {
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
-
 }
 
-export async function createArticleTags(payload: types.TagObjNoId[], article: typeof Article){
-    const isTagExist = payload.length > 0;
-    if(isTagExist){ 
-        const tags = await Tag.bulkCreate(payload);
-        for(let i=0; i < tags.length; i++){
-            await article.addTag(tags[i]);
-        }
-    }
-}
-
-export async function updateArticleTags(payload: types.TagObject[], article: typeof Article){
-        const isTagExist = payload.length > 0;
+export async function createUpdateArticleTags(tagObject: types.TagObject[], article: typeof Article){
+        const isTagExist = tagObject.length > 0;
         if(isTagExist){ 
-            const tags = await Tag.bulkCreate(payload, { updateOnDuplicate: ['name']});
-            await article.setTags(tags);
+            for(const tagName of tagObject){
+                const [tag, created] = await Tag.findOrCreate({
+                    where: { name: tagName.name }
+                })
+                
+                if(created) await article.addTag(tag);
+            }
         }
 }
 

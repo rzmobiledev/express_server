@@ -263,40 +263,37 @@ describe('Test delete level access', () => {
 
 describe('Test create article and tags', () => {
 
-    // beforeEach(() => {
-    //     jest.spyOn(global, 'fetch')
-    //     .mockImplementation(jest.fn(helpers.createArticleResponse));
-    // });
-
-    // afterEach(() => {
-    //    jest.clearAllMocks();
-    //    jest.restoreAllMocks();
-    // });
-
-    // test('create articles', async() => {
-    //     await helpers.createNewArticle(helpers.articlePayload)
-    //     // .then((data) => expect(data).toEqual(helpers.articlePayload))
-    //     .then((data) => console.log(data))
-    // });
-
-    test('update articles', async() => {
-        await helpers.updateArticle(8, helpers.articlePayload)
-        // .then((data) => expect(data).toEqual(helpers.articlePayload))
-        .then((data) => console.log(data))
+    beforeEach(() => {
+        jest.spyOn(global, 'fetch')
+        .mockImplementation(jest.fn(helpers.createArticleResponse));
     });
 
-    // test('get all articles', async() => {
-    //     await helpers.getAllArticles()
-    //     .then((data) => expect(data).toEqual(helpers.articlePayload))
-    // });
+    afterEach(() => {
+       jest.clearAllMocks();
+       jest.restoreAllMocks();
+    });
 
-    // test('get one articles', async() => {
-    //     await helpers.getOneArticle(15)
-    //     .then((data) => expect(data).toEqual(helpers.articlePayload))
-    // });
-    //  test('delete one articles', async() => {
-    //     await helpers.deleteArticle(7, helpers.articlePayload)
-    //     // .then((data) => expect(data).toEqual(helpers.articlePayload))
-    //     .then((data) => console.log(data))
-    // });
+    test('create articles', async() => {
+        await helpers.createNewArticle(helpers.articlePayload)
+        .then((data) => expect(data).toEqual(helpers.articlePayload))
+    });
+
+    test('update articles', async() => {
+        await helpers.updateArticle(19, helpers.articlePayload)
+        .then((data) => expect(data).toEqual(helpers.articlePayload))
+    });
+
+    test('get all articles', async() => {
+        await helpers.getAllArticles()
+        .then((data) => expect(data).toEqual(helpers.articlePayload))
+    });
+
+    test('get one articles', async() => {
+        await helpers.getOneArticle(15)
+        .then((data) => expect(data).toEqual(helpers.articlePayload))
+    });
+     test('delete one articles', async() => {
+        await helpers.deleteArticle(19, helpers.articlePayload)
+        .then((data) => expect(data).toEqual(helpers.articlePayload))
+    });
 })
