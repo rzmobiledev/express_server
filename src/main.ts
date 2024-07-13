@@ -2,7 +2,6 @@ import express, {Express, NextFunction, Request, Response} from 'express';
 import dotenv from 'dotenv';
 import bodyParser from "body-parser";
 import Routes from './controller/router';
-import {ErrorMsgEnum} from './utils/enum';
 
 dotenv.config()
 

@@ -15,13 +15,21 @@ module.exports = (sequelize, DataTypes) => {
       });
 
       Article.belongsTo(models.User, {
-        foreignKey: 'userId',
-        onDelete: 'CASCADE'
+        foreignKey: 'userId'
+      });
+
+      Article.belongsTo(models.Category, {
+        foreignKey: {
+          name: 'categoryId',
+          allowNull: true
+        },
+        as: "categories"
       });
     }
   }
   Article.init({
     userId: DataTypes.NUMBER,
+    categoryId: DataTypes.NUMBER,
     title: DataTypes.STRING,
     subtitle: DataTypes.STRING,
     description: DataTypes.STRING
@@ -29,5 +37,4 @@ module.exports = (sequelize, DataTypes) => {
     sequelize,
     modelName: 'Article',
   });
-  return Article;
-};
+  return Article;};

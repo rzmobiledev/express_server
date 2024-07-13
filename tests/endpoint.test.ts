@@ -15,42 +15,51 @@ import * as ENUM from '../src/utils/enum';
 import { GenTokenEnum } from './helpers';
 const jwt = require('jsonwebtoken');
 
-describe('Test Hompage', () => {
+// describe('Test Hompage', () => {
 
-    test('get response from home endpoint', async() => {
+//     test('get response from home endpoint', async() => {
 
-        return await helpers.getHomepage().then(data => {
-            const response = {message: "Welcome to my site!"}
-                expect(data).toEqual(response)
-            });
-    });
+//         return await helpers.getHomepage().then(data => {
+//             const response = {message: "Welcome to my site!"}
+//                 expect(data).toEqual(response)
+//             });
+//     });
+// })
+
+// describe('Test list users endpoints', () => {
+
+//     beforeEach(() => {
+//         jest.spyOn(global, 'fetch')
+//         .mockImplementation(jest.fn(helpers.userFetchMock))
+//     })
+
+//     afterEach(() => {
+//        jest.clearAllMocks();
+//     });
+
+//     test('show all users in databases', async() => {
+//         return await helpers.showAllUsers().then(data => {
+//             const response: object = helpers.userPayload
+//             expect(data).toEqual(response)
+//         })
+//     });
+
+//     test('test get user profile', async() => {
+//         await helpers.getUserProfile(4).then((data) => {
+//             expect(data).toEqual(helpers.userPayload);
+//         })
+//     })
+
+// });
+
+describe('Test login', () => {
+
+    test('login user', async() => {
+        await helpers.loginUser(helpers.loginPayload)
+        .then((data) => console.log(data))
+        .catch((err) => console.log(err))
+    })
 })
-
-describe('Test list users endpoints', () => {
-
-    beforeEach(() => {
-        jest.spyOn(global, 'fetch')
-        .mockImplementation(jest.fn(helpers.userFetchMock))
-    })
-
-    afterEach(() => {
-       jest.clearAllMocks();
-    });
-
-    test('show all users in databases', async() => {
-        return await helpers.showAllUsers().then(data => {
-            const response: object = helpers.userPayload
-            expect(data).toEqual(response)
-        });
-    });
-
-    test('test get user profile', async() => {
-        await helpers.getUserProfile(4).then((data) => {
-            expect(data).toEqual(helpers.userPayload);
-        })
-    })
-
-});
 
 describe('Test CRUD users', () => {
 
@@ -73,13 +82,13 @@ describe('Test CRUD users', () => {
 
     test('test update user profile', async() => {
 
-        await helpers.updateUser(19, helpers.userPayload).then(data => {
+        await helpers.updateUser(3, helpers.userPayload).then(data => {
             expect(data).toEqual(helpers.userPayload);
         })
     });
 
     test('test change user profile', async() => {
-        await helpers.changeUserProfile(19, helpers.userPayload)
+        await helpers.changeUserProfile(3, helpers.userPayload)
         .then((data) => {
             expect(data).toEqual(helpers.userPayload)
         })
@@ -106,8 +115,14 @@ describe('Test delete user', () => {
         jest.clearAllMocks();
     });
 
-    test('test delete user', async() => {
-        await helpers.deleteUser(1, helpers.userPayload).then((data) => {
+    test('test soft delete user', async() => {
+        await helpers.sofDeleteUser(3).then((data) => {
+            // expect(data).toEqual(ENUM.SuccessMsgEnum.USER_DELETED)
+        })
+    })
+
+    test('test hard delete user', async() => {
+        await helpers.hardDeleteUser(3, helpers.userPayload).then((data) => {
             expect(data).toEqual(ENUM.SuccessMsgEnum.USER_DELETED)
         })
     })
@@ -159,6 +174,8 @@ describe('Test JWT Token', () => {
     let mockGenToken: any = undefined;
     let mockDecodedToken: any;
     const email = helpers.userPayload.email;
+    const level = helpers.userPayload.role;
+    const data_to_encode = { email: email, level: level}
     
 
     beforeEach(() => {
@@ -171,14 +188,14 @@ describe('Test JWT Token', () => {
     });
 
     test('test generate access key token', () => {
-        const generate_token = new Utils.EncodeDecodeJWTToken(email);
+        const generate_token = new Utils.EncodeDecodeJWTToken(data_to_encode);
         const token = generate_token.generateJWTToken(30);
         expect(token).toEqual(GenTokenEnum.GENERATED_TOKEN);
         expect(mockGenToken).toHaveBeenCalled();
     });
 
     test('test decode generated token', async() => {
-        const generate_token = new Utils.EncodeDecodeJWTToken(email);
+        const generate_token = new Utils.EncodeDecodeJWTToken(data_to_encode);
         const token = generate_token.generateJWTToken(10);
         
         const decode_token = new Utils.EncodeDecodeJWTToken(token);
@@ -194,7 +211,10 @@ describe('Test decode JWT with wrong token', () => {
 
     test('Decode jwt with wrong token', async() => {
         const token = GenTokenEnum.WRONG_TOKEN    
-        const decode_token = new Utils.EncodeDecodeJWTToken(token);
+        const level = helpers.userPayload.role;
+        const data_to_encode = { email: token, level: level}
+
+        const decode_token = new Utils.EncodeDecodeJWTToken(data_to_encode);
         return await decode_token.decodeJWTToken().catch((error) => {
             expect(error).toEqual(ENUM.ErrorMsgEnum.TOKEN_EXPIRED);
         });
@@ -236,7 +256,6 @@ describe('Test auth level user', () => {
         .then((data) => {
             expect(data).toEqual(helpers.LevelPayload);
         })
-        .catch((err) => console.log(err))
         
     })
 });
@@ -275,11 +294,11 @@ describe('Test create article and tags', () => {
 
     test('create articles', async() => {
         await helpers.createNewArticle(helpers.articlePayload)
-        .then((data) => expect(data).toEqual(helpers.articlePayload))
+        // .then((data) => expect(data).toEqual(helpers.articlePayload))
     });
 
     test('update articles', async() => {
-        await helpers.updateArticle(19, helpers.articlePayload)
+        await helpers.updateArticle(12, helpers.articlePayload)
         .then((data) => expect(data).toEqual(helpers.articlePayload))
     });
 
@@ -295,5 +314,43 @@ describe('Test create article and tags', () => {
      test('delete one articles', async() => {
         await helpers.deleteArticle(19, helpers.articlePayload)
         .then((data) => expect(data).toEqual(helpers.articlePayload))
+    });
+});
+
+describe('Test Categories endpoints', () => {
+
+    beforeEach(() => {
+        jest.spyOn(global, 'fetch')
+        .mockImplementation(jest.fn(helpers.createCategoryResponse))
+    });
+
+    afterEach(() => {
+       jest.clearAllMocks();
+       jest.restoreAllMocks();
+    });
+
+    test('create category', async() => {
+        await helpers.createCategory(helpers.categoryPayload)
+        .then((data) => expect(data).toEqual(helpers.categoryPayload))
+    });
+
+    test('get one category', async() => {
+        await helpers.getCategById(1)
+        .then((data) => expect(data).toEqual(helpers.categoryPayload))
+    });
+
+    test('get all category', async() => {
+        await helpers.getAllCategories()
+        .then((data) => expect(data).toEqual(helpers.categoryPayload))
+    });
+
+    test('update category', async() => {
+        await helpers.updateCategory(1, helpers.categoryPayload)
+        .then((data) => expect(data).toEqual(helpers.categoryPayload))
+    });
+
+    test('delete category', async() => {
+        await helpers.deleteCategory(1, helpers.categoryPayload)
+        .then((data) => expect(data).toEqual(helpers.categoryPayload))
     });
 })

@@ -146,16 +146,14 @@ module.exports = {
         const userId = userParams.getUserId();
         const error = new utils.ErrResHandler(res);
         const success = new utils.UserSuccessResHandler(res);
-
-        const userExists = await User.findByPk(userId);
-        if(!userExists) return error.get_404_userNotFound();
         
         try{
             
-            await User.destroy({
+            const userExists = await User.destroy({
                 where: {id: userId}
             });
 
+            if(!userExists) return error.get_404_userNotFound();
             return success.get_200_userDeleted();
 
 
@@ -163,5 +161,39 @@ module.exports = {
             return error.get_globalError(err);
         }
     },
+
+    async hardDeleteUser(req: Request, res: Response){
+        const userParams = new utils.UserBodyParams(req);
+        const userId = userParams.getUserId();
+        const error = new utils.ErrResHandler(res);
+        const success = new utils.UserSuccessResHandler(res);
+        
+        try{
+            const userExists = await User.destroy({
+                where: {id: userId},
+                force: true,
+            });
+            
+            if(!userExists) return error.get_404_userNotFound();
+            return success.get_200_userDeleted();
+
+        }catch(err){
+            return error.get_globalError(err);
+        }
+    },
+
+    async login(req: Request, res: Response){
+        const error = new utils.ErrResHandler(res);
+
+        try{
+            if(!req.body.email || !req.body.password) {
+                return res.status(400).json({message: error.get_400_fieldNotEmpty})
+            }
+            
+            return await utils.compareUserPassword(req, res);
+        }catch(err){
+            return error.get_globalError(err);
+        }
+    }
 
 }

@@ -1,14 +1,19 @@
+require('dotenv').config();
 import { SuccessMsgEnum } from '../src/utils/enum';
-import { UserObjNoReadOnlyType, LevelAccessNoIdNoReadonlyType, ArticleFieldNoIdNoRoType } from '../src/utils/type';
+import { UserObjNoReadOnlyType, LevelAccessNoIdNoReadonlyType, ArticleFieldNoIdNoRoType, CategoryNoIdType, UserLoginType } from '../src/utils/type';
 const SequelizeMock = require('sequelize-mock');
 const dbMock = new SequelizeMock();
 
 
 require('dotenv').config();
 
+export const loginPayload: UserLoginType = {
+    email: String(process.env.USER_EMAIL),
+    password: String(process.env.USER_PASSWORD)
+}
 
 export const userPayload: UserObjNoReadOnlyType = {
-    firstName: 'Rizal',
+    firstName: 'Rizals',
     lastName: 'Safrizal',
     username: 'rizal',
     email: 'rzmobiledev@gmail.com',
@@ -35,7 +40,8 @@ export const userPayloadWrong: UserObjNoReadOnlyType = {
 
 export const articlePayload: ArticleFieldNoIdNoRoType = {
     userId: 3,
-    title: 'Writing First Article',
+    categoryId: 2,
+    title: 'Writing First Articles',
     subtitle: 'This is called initial commit',
     description: 'The first time we wrote article on this website',
     tags: [
@@ -45,17 +51,20 @@ export const articlePayload: ArticleFieldNoIdNoRoType = {
         {
             name: 'twitter',
         },
-        // {
-        //     name: 'newspaper',
-        // },
-        // {
-        //     name: 'articles',
-        // },
-        // {
-        //     name: 'articles',
-        // }
+        {
+            name: 'newspaper',
+        },
+        {
+            name: 'articles',
+        },
+        {
+            name: 'investigation',
+        }
     ],
+    
 }
+
+export const categoryPayload: CategoryNoIdType = { name: 'news'}
 
 export const UserMock = dbMock.define('user', userPayload, {
     instanceMethods: {
@@ -98,6 +107,7 @@ const EndpointsEnum = Object.freeze({
     ALLUSERS: `http://${String(process.env.HOST)}:${Number(process.env.PORT)}/api/users`,
     LEVELS: `http://${String(process.env.HOST)}:${Number(process.env.PORT)}/api/levelauth`,
     ARTICLES: `http://${String(process.env.HOST)}:${Number(process.env.PORT)}/api/article`,
+    CATEGORY: `http://${String(process.env.HOST)}:${Number(process.env.PORT)}/api/category`,
 });
 
 export const GenTokenEnum = Object.freeze({
@@ -117,7 +127,7 @@ async function GetEndpointResponse(url: string) {
     });
 }
 
-function PostEndpointResponse(url: string, method: string, payload: UserObjNoReadOnlyType | LevelAccessNoIdNoReadonlyType | ArticleFieldNoIdNoRoType){
+function PostEndpointResponse(url: string, method: string, payload?: UserObjNoReadOnlyType | LevelAccessNoIdNoReadonlyType | ArticleFieldNoIdNoRoType | CategoryNoIdType | UserLoginType){
     return fetch(url, {
             method: method.toUpperCase(),
             body: JSON.stringify(payload),
@@ -157,8 +167,12 @@ export async function changeUserPassword(userId: number, payload: UserObjNoReadO
     return await PostEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId+'/password', 'PUT', payload)
 }
 
-export async function deleteUser(userId: number, payload: UserObjNoReadOnlyType){
-    return PostEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId, 'DELETE', payload);
+export async function sofDeleteUser(userId: number){
+    return PostEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId, 'DELETE');
+}
+
+export async function hardDeleteUser(userId: number, payload: UserObjNoReadOnlyType){
+    return PostEndpointResponse(EndpointsEnum.ALLUSERS+'/user/'+userId, 'DELETE', payload);
 }
 
 export async function createLevelAccessUser(payload: LevelAccessNoIdNoReadonlyType){    
@@ -201,26 +215,32 @@ export async function deleteArticle(levelId: number, payload: ArticleFieldNoIdNo
     return PostEndpointResponse(EndpointsEnum.ARTICLES+'/'+levelId, 'DELETE', payload);
 }
 
-export function userFetchMock(): Promise<Response> {
-    return new Promise((resolve, reject) => {
-        resolve({
-            ok: true,
-            status: 201,
-            json: async () => userPayload  
-        } as Response)
-    })
+export async function createCategory(payload: CategoryNoIdType){
+    return PostEndpointResponse(EndpointsEnum.CATEGORY, 'POST', payload);
+}
+
+export async function getCategById(categId: number){
+    return GetEndpointResponse(EndpointsEnum.CATEGORY+'/'+categId);
+}
+
+export async function getAllCategories(){
+    return GetEndpointResponse(EndpointsEnum.CATEGORY);
 }
 
 export function hashedPasswordMock(): Promise<string> {
     return Promise.resolve(PasswordEnumTest.HASHED_PASSWORD);
 }
 
-export function deletedUser(): Promise<Response> {
-    return Promise.resolve({
-        ok: true,
-        status: 200,
-        json: async () => SuccessMsgEnum.USER_DELETED
-    } as Response)
+export async function updateCategory(categId: number, payload: CategoryNoIdType){
+    return PostEndpointResponse(EndpointsEnum.CATEGORY+'/'+categId, 'PUT', payload);
+}
+
+export async function deleteCategory(categId: number, payload: CategoryNoIdType){
+    return PostEndpointResponse(EndpointsEnum.CATEGORY+'/'+categId, 'DELETE', payload);
+}
+
+export async function loginUser(payload: UserLoginType){
+    return PostEndpointResponse(EndpointsEnum.ALLUSERS+'/login', 'POST', payload)
 }
 
 const globalResponse = (payload: any): Promise<Response> => {
@@ -230,10 +250,22 @@ const globalResponse = (payload: any): Promise<Response> => {
     } as Response)
 }
 
+export function userFetchMock(): Promise<Response>{
+    return globalResponse(userPayload);
+}
+
+export function deletedUser(): Promise<Response> {
+    return globalResponse(SuccessMsgEnum.USER_DELETED);
+}
+
 export function deleteLevelResponse(){
     return globalResponse({message: SuccessMsgEnum.LEVEL_DELETED});
 }
 
 export function createArticleResponse(){
     return globalResponse(articlePayload);
+}
+
+export function createCategoryResponse(){
+    return globalResponse(categoryPayload);
 }
