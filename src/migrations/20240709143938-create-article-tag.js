@@ -15,7 +15,8 @@ module.exports = {
         references: {
           model: 'Articles',
           key: 'id'
-        }
+        },
+        onDelete: 'CASCADE'
       },
       tagId: {
         type: Sequelize.INTEGER,
@@ -23,7 +24,8 @@ module.exports = {
         references: {
           model: 'Tags',
           key: 'id'
-        }
+        },
+        onDelete: 'CASCADE'
       },
       createdAt: {
         allowNull: false,

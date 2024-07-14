@@ -99,9 +99,9 @@ export class UserBodyParams implements types.UserBodyInterface{
 }
 
 export class EncodeDecodeJWTToken {
-    private key: string;
+    private key: types.JWTType;
 
-    constructor(key: string){
+    constructor(key: types.JWTType){
         this.key = key
     }
 
@@ -119,7 +119,8 @@ export class EncodeDecodeJWTToken {
     public async decodeJWTToken(): Promise<string|object> {
         return await jwt.verify(this.key, PasswordEnum.SECRET_KEY, (err: types.jwtErrorType, decoded: types.decodedKeyParamsType) => {
             if(err) throw(ErrorMsgEnum.TOKEN_EXPIRED)
-            return decoded.key;
+            console.log(decoded)
+            return decoded;
         })
     }
 }
@@ -140,8 +141,8 @@ export async function encryptUserPassword(password: string): Promise<string> {
 export async function verifyJWTToken(req: Request, res: Response, next: NextFunction){
     const token = req.header("Authorization")?.replace("Bearer ","");
     if(!token) return res.status(403).json({message: ErrorMsgEnum.ACCESS_DENIED});
-    
-    const decodeToken = new EncodeDecodeJWTToken(token);
+    const encoded_token: types.JWTType = { email: token, level: 1 }
+    const decodeToken = new EncodeDecodeJWTToken(encoded_token);
 
     try{
         await decodeToken.decodeJWTToken();
@@ -176,6 +177,36 @@ export function isAllUserFieldsSatisfied(firstName: string, lastName: string, em
     return false;
 }
 
+export async function compareUserPassword(req: Request, res: Response){
+    const { email, password } = req.body;
+    const userExists = await User.findOne({ where: {email: email} });
+
+    if(userExists){
+        const hashed_password = userExists.dataValues?.password;
+        const data_to_encode: types.JWTType = { email: email, level: userExists.dataValues?.role}
+
+        const isMatched = isPasswordMatched(password, hashed_password);
+        if(!isMatched) return res.status(400).json({message: ErrorMsgEnum.COMPARING_PASSWDERROR});
+        const token = encodedUserPassword(data_to_encode);
+        return res.status(200).json(token);
+        
+    } else return res.status(400).send({message: ErrorMsgEnum.UNAUTHORIZED});
+}
+
+function isPasswordMatched(raw_password: string, hashed_password: string): boolean{
+    let isMatched: boolean = false
+    bcrypt.compare(raw_password, hashed_password, (err, result) => {
+       if(result) isMatched = true;
+    });
+    return isMatched
+}
+
+function encodedUserPassword(payload: types.JWTType){
+    const encode_token = new EncodeDecodeJWTToken(payload);
+    const token = encode_token.generateJWTToken(30);
+    return token;
+}
+
 export function errorResHandler(res: Response, error: any): Response {
     if('errors' in error) return res.status(400).send({message: ErrorMsgEnum.SOFT_DELETED_DETECT});
     return res.status(400).send({message: ErrorMsgEnum.URL_NOT_EXISTS});
@@ -199,6 +230,9 @@ export class ErrResHandler implements types.ErrorType{
     }
     get_404_articleNotFound(): Response {
         return this.res.status(404).json({message: ErrorMsgEnum.ARTICLE_NOT_FOUND});
+    }
+    get_404_categoryNotFound(): Response {
+        return this.res.status(404).json({message: ErrorMsgEnum.CATEGORY_NOT_FOUND});
     }
     get_404_userNotFound(): Response {
         return this.res.status(404).json({message: ErrorMsgEnum.ID_NOT_FOUND});
@@ -293,14 +327,16 @@ export class Articles implements types.ArticleFieldType, types.ArticleMethodGetT
 
     id: number;
     userId: number;
+    categoryId: number;
     title: string;
     subtitle: string;
     description: string;
     readonly tags: types.TagObject[];
 
-    constructor(id: number, userId: number, title: string, subtitle: string, description: string, tags: types.TagObject[]){
+    constructor(id: number, userId: number, categoryId: number, title: string, subtitle: string, description: string, tags: types.TagObject[]){
         this.id = id;
         this.userId = userId;
+        this.categoryId = categoryId;
         this.title = title;
         this.subtitle = subtitle;
         this.description = description;
@@ -330,6 +366,7 @@ export class Articles implements types.ArticleFieldType, types.ArticleMethodGetT
 
 export class ArticlesBodyParams implements types.ArticleFieldNoIdType {
     readonly userId: number;
+    readonly categoryId: number;
     readonly title: string;
     readonly subtitle: string;
     readonly description: string;
@@ -337,6 +374,7 @@ export class ArticlesBodyParams implements types.ArticleFieldNoIdType {
     
     constructor(req: Request){
         this.userId = req.body.userId;
+        this.categoryId = req.body.categoryId;
         this.title = req.body.title;
         this.subtitle = req.body.subtitle;
         this.description = req.body.description;
@@ -402,9 +440,8 @@ export async function createUpdateArticleTags(tagObject: types.TagObject[], arti
             for(const tagName of tagObject){
                 const [tag, created] = await Tag.findOrCreate({
                     where: { name: tagName.name }
-                })
-                
-                if(created) await article.addTag(tag);
+                });
+                article.addTag(tag);
             }
         }
 }

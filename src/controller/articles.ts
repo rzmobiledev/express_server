@@ -1,4 +1,4 @@
-import { Response, Request, raw } from "express";
+import { Response, Request } from "express";
 
 import * as utils from '../utils/utils';
 const Article = require('../models').Article;
@@ -46,13 +46,16 @@ module.exports = {
         const bodyParams = new utils.ArticlesBodyParams(req);
 
         try{
+            if(!bodyParams.categoryId) return error.get_404_categoryNotFound();
+
             const article = await Article.create({
-                userId: bodyParams.userId,
+                userId: Number(bodyParams.userId),
+                categoryId: Number(bodyParams.categoryId),
                 title: bodyParams.title,
-                subtitle: bodyParams.subtitle,
+                subtitle: bodyParams.subtitle,  
                 description: bodyParams.description
             });
-
+            
             await utils.createUpdateArticleTags(bodyParams.tags, article);
             const result = await Article.findByPk(article.id, {
                 include: [{
@@ -60,10 +63,11 @@ module.exports = {
                     as: 'tags'
                 }]
             })
-
+            
             return res.status(201).json(result)
         }catch(err){
-            return error.get_globalError(err);
+            // return error.get_globalError(err);
+            return res.status(400).send(err)
         }
     },
 
@@ -81,6 +85,7 @@ module.exports = {
             });
             
             if(!article) return error.get_404_articleNotFound();
+            else if(!bodyParams.categoryId) return error.get_404_categoryNotFound();
 
             const articleTagsObject = JSON.stringify(article?.tags);
             const articleTagsToJson = articleTagsObject ? JSON.parse(articleTagsObject) : [];
@@ -101,7 +106,6 @@ module.exports = {
         const error = new utils.ErrResHandler(res);
         const success = new utils.ArticleSuccessResHandler(res);
         const articleId = Number(req.params.id)
-        console.log(articleId + 'article id');
         
         try{
             const article = await ArticleTag.destroy({

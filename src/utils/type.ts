@@ -41,8 +41,11 @@ export type jwtErrorType = {
     }
 }
 
-export type decodedKeyParamsType = {
-    key: string;
+export type decodedKeyParamsType = JWTType
+
+export type JWTType = {
+    email: string;
+    level: number;
 }
 
 export interface UserBodyInterface {
@@ -101,10 +104,17 @@ export type LevelAccessNoIdType = NoIdType<LevelAccessType>
 
 export type LevelAccessNoIdNoReadonlyType = NoReadonly<LevelAccessNoIdType>
 
+export type CategoryType = {
+    readonly id: number;
+    readonly name: string
+}
+
+export type CategoryNoIdType = NoIdType<CategoryType>
 
 export type ArticleFieldType = {
     readonly id: number;
     readonly userId: number;
+    readonly categoryId: number;
     readonly title: string;
     readonly subtitle: string;
     readonly description: string;
@@ -123,11 +133,6 @@ export type ArticleMethodGetType = {
     getTags(): TagObject[]
 }
 
-
-type ArticleTag = {
-    selfGranted: Boolean
-}
-
 export type TagObject = {
     id: number;
     name: string;
@@ -144,3 +149,7 @@ export type ArticleTagsType = {
     readonly updatedAt?: Date;
 }
 
+export type UserLoginType = {
+    email: string;
+    password: string
+}

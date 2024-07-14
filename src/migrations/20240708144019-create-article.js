@@ -14,8 +14,18 @@ module.exports = {
         references: {
           model: {
             tableName: 'Users'
-          }
-        }
+          },
+        },
+        onDelete: 'CASCADE'
+      },
+      categoryId:{
+        type: Sequelize.INTEGER,
+        references: {
+          model: {
+            tableName: 'Categories',
+          },
+        },
+        onDelete: 'CASCADE'
       },
       title: {
         type: Sequelize.STRING

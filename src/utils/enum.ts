@@ -21,6 +21,7 @@ export const ErrorMsgEnum = Object.freeze({
     FIELD_SHOULDNOT_EMPTY: "Make sure all fields not empty!",
     ID_NOT_FOUND: "ID Not Found!",
     ARTICLE_NOT_FOUND: "Article not found",
+    CATEGORY_NOT_FOUND: "Category not found",
     EMAIL_ALREADY_REGISTERED: "This email is already registered.",
     ACCESS_DENIED: "Access Denied!",
     TOKEN_EXPIRED: "Your token expired.",
@@ -29,12 +30,16 @@ export const ErrorMsgEnum = Object.freeze({
     SOFT_DELETED_DETECT: "This email already exists in database and has soft deletion",
     LEVEL_NOT_FOUND: "Level not found!",
     LEVEL_EXISTS: "This level exists in database",
-    UNKNOWN_ERROR: 'Unknown Error. Report to admin.'
+    UNKNOWN_ERROR: 'Unknown Error. Report to admin.',
+    COMPARING_PASSWDERROR: 'Error comparing password.',
+    PASSWORD_NOT_MATCH: 'Password does not match',
+    UNAUTHORIZED: 'You are unauthorized!'
 });
 
 export const SuccessMsgEnum = Object.freeze({
     PASSWORD_UPDATED: 'Your password has changed.',
     USER_DELETED: 'User deleted.',
+    CATEGORY_DELETED: 'Category deleted.',
     LEVEL_UPDATED: 'Level updated.',
     LEVEL_DELETED: 'Level deleted.',
     ARTICLE_DELETED: 'Article deleted.',
