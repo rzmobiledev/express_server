@@ -269,3 +269,7 @@ export function createArticleResponse(){
 export function createCategoryResponse(){
     return globalResponse(categoryPayload);
 }
+
+export function generateTokenResponse(){
+    return globalResponse(GenTokenEnum.GENERATED_TOKEN);
+}
