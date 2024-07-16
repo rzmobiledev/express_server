@@ -1,10 +1,11 @@
 import express from 'express';
-import { verifyJWTToken } from '../utils/utils';
+import { verifyJWTToken, uploadFile } from '../utils/utils';
+
 const UserRoutes = require('./users');
 const LevelRoutes = require('./authlevels');
 const Articles = require('./articles');
 const Categories = require('./categories');
-
+const Galleries = require('./galleries');
 const router = express.Router();
 
 // importing controller`
@@ -34,5 +35,7 @@ router.get('/category/:id', verifyJWTToken, Categories.getCategById);
 router.get('/category', verifyJWTToken, Categories.getAllCategories);
 router.put('/category/:id', verifyJWTToken, Categories.updateCategory);
 router.delete('/category/:id', verifyJWTToken, Categories.deleteCategory);
+
+router.post('/gallery', uploadFile.single('filename'), Galleries.uploadFiles);
 
 export default router;

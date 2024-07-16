@@ -1,8 +1,5 @@
 import { Request, Response } from "express";
-
 import * as utils from '../utils/utils';
-
-
 const User = require("../models/").User;
 
 module.exports = {
@@ -184,9 +181,8 @@ module.exports = {
 
     async login(req: Request, res: Response){
         const error = new utils.ErrResHandler(res);
-
         try{
-            if(!req.body.email || !req.body.password) {
+            if(!req.body.email && !req.body.password) {
                 return res.status(400).json({message: error.get_400_fieldNotEmpty})
             }
             

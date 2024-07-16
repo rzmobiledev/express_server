@@ -1,11 +1,16 @@
+const fs = require('fs');
+const path = require('path');
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
-import {NextFunction, Request, Response } from 'express';
+import {NextFunction, Request, Response, Express } from 'express';
+import multer, { FileFilterCallback } from 'multer';
+import { fileURLToPath } from 'url';
 import { ErrorMsgEnum, PasswordEnum, SuccessMsgEnum } from './enum';
 import * as types from './type';
-import { Model } from 'sequelize';
+
 
 dotenv.config();
+
 
 const User = require("../models").User;
 const Level = require("../models").AuthLevel;
@@ -471,4 +476,49 @@ export function filterOnlyTagsID(articleTags: types.TagObject[]): number[]{
         tagsIDs.push(articleTags[i].id);
     }
     return tagsIDs;
+}
+
+const fileStorage = multer.diskStorage({
+    destination: (
+        request: Request,
+        file: Express.Multer.File,
+        callback: types.DestinationCallback
+    ): void => {
+        const path = 'public/uploads'
+        createFolderIfNotExist(path, callback);
+    },
+
+    filename: (
+        req: Request,
+        file: Express.Multer.File,
+        callback: types.FileNameCallback
+    ): void => {
+        callback(null, file.originalname);
+    }
+});
+
+const fileFilter = (
+    req: Request,
+    file: Express.Multer.File,
+    callback: FileFilterCallback
+): void => {
+    if(
+        file.mimetype === 'image/png' ||
+        file.mimetype === 'image/jpg' ||
+        file.mimetype === 'image/jpeg'
+    ) {
+        callback(null, true);
+    } else callback(null, false);
+}
+
+export const uploadFile = multer({storage: fileStorage, fileFilter: fileFilter});
+
+export function createFolderIfNotExist(folderName: string, callback: types.DestinationCallback){
+    fs.exists(path.join(folderName), (exists: boolean) => {
+        if(!exists){
+            const paths = path.resolve(folderName)
+            fs.mkdirSync(paths, {recursive: true});
+        }
+        callback(null, folderName)
+    });
 }
