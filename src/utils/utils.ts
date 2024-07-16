@@ -1,11 +1,16 @@
+const fs = require('fs');
+const path = require('path');
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
-import {NextFunction, Request, Response } from 'express';
+import {NextFunction, Request, Response, Express } from 'express';
+import multer, { FileFilterCallback } from 'multer';
+import { fileURLToPath } from 'url';
 import { ErrorMsgEnum, PasswordEnum, SuccessMsgEnum } from './enum';
 import * as types from './type';
-import { Model } from 'sequelize';
+
 
 dotenv.config();
+
 
 const User = require("../models").User;
 const Level = require("../models").AuthLevel;
@@ -117,9 +122,8 @@ export class EncodeDecodeJWTToken {
     }
 
     public async decodeJWTToken(): Promise<string|object> {
-        return await jwt.verify(this.key, PasswordEnum.SECRET_KEY, (err: types.jwtErrorType, decoded: types.decodedKeyParamsType) => {
+        return await jwt.verify(this.key.email, PasswordEnum.SECRET_KEY, (err: types.jwtErrorType, decoded: types.decodedKeyParamsType) => {
             if(err) throw(ErrorMsgEnum.TOKEN_EXPIRED)
-            console.log(decoded)
             return decoded;
         })
     }
@@ -185,25 +189,23 @@ export async function compareUserPassword(req: Request, res: Response){
         const hashed_password = userExists.dataValues?.password;
         const data_to_encode: types.JWTType = { email: email, level: userExists.dataValues?.role}
 
-        const isMatched = isPasswordMatched(password, hashed_password);
-        if(!isMatched) return res.status(400).json({message: ErrorMsgEnum.COMPARING_PASSWDERROR});
-        const token = encodedUserPassword(data_to_encode);
-        return res.status(200).json(token);
+        bcrypt.compare(password, hashed_password, (err, result) => {
+            if(err) return res.status(400).send({message: ErrorMsgEnum.COMPARING_PASSWDERROR});
+            if(result) {
+                const token = encodedUserPassword(data_to_encode);
+                return res.status(200).json({access: token});
+            }
+            else {
+                return res.status(400).send({message: ErrorMsgEnum.PASSWORD_NOT_MATCH})
+            }
+        });
         
     } else return res.status(400).send({message: ErrorMsgEnum.UNAUTHORIZED});
 }
 
-function isPasswordMatched(raw_password: string, hashed_password: string): boolean{
-    let isMatched: boolean = false
-    bcrypt.compare(raw_password, hashed_password, (err, result) => {
-       if(result) isMatched = true;
-    });
-    return isMatched
-}
-
-function encodedUserPassword(payload: types.JWTType){
+function encodedUserPassword(payload: types.JWTType): string{
     const encode_token = new EncodeDecodeJWTToken(payload);
-    const token = encode_token.generateJWTToken(30);
+    const token = encode_token.generateJWTToken(120);
     return token;
 }
 
@@ -474,4 +476,49 @@ export function filterOnlyTagsID(articleTags: types.TagObject[]): number[]{
         tagsIDs.push(articleTags[i].id);
     }
     return tagsIDs;
+}
+
+const fileStorage = multer.diskStorage({
+    destination: (
+        request: Request,
+        file: Express.Multer.File,
+        callback: types.DestinationCallback
+    ): void => {
+        const path = 'public/uploads'
+        createFolderIfNotExist(path, callback);
+    },
+
+    filename: (
+        req: Request,
+        file: Express.Multer.File,
+        callback: types.FileNameCallback
+    ): void => {
+        callback(null, file.originalname);
+    }
+});
+
+const fileFilter = (
+    req: Request,
+    file: Express.Multer.File,
+    callback: FileFilterCallback
+): void => {
+    if(
+        file.mimetype === 'image/png' ||
+        file.mimetype === 'image/jpg' ||
+        file.mimetype === 'image/jpeg'
+    ) {
+        callback(null, true);
+    } else callback(null, false);
+}
+
+export const uploadFile = multer({storage: fileStorage, fileFilter: fileFilter});
+
+export function createFolderIfNotExist(folderName: string, callback: types.DestinationCallback){
+    fs.exists(path.join(folderName), (exists: boolean) => {
+        if(!exists){
+            const paths = path.resolve(folderName)
+            fs.mkdirSync(paths, {recursive: true});
+        }
+        callback(null, folderName)
+    });
 }

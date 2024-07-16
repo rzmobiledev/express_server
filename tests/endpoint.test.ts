@@ -15,50 +15,59 @@ import * as ENUM from '../src/utils/enum';
 import { GenTokenEnum } from './helpers';
 const jwt = require('jsonwebtoken');
 
-// describe('Test Hompage', () => {
+describe('Test Hompage', () => {
 
-//     test('get response from home endpoint', async() => {
+    test('get response from home endpoint', async() => {
 
-//         return await helpers.getHomepage().then(data => {
-//             const response = {message: "Welcome to my site!"}
-//                 expect(data).toEqual(response)
-//             });
-//     });
-// })
+        return await helpers.getHomepage().then(data => {
+            const response = {message: "Welcome to my site!"}
+                expect(data).toEqual(response)
+            });
+    });
+})
 
-// describe('Test list users endpoints', () => {
+describe('Test list users endpoints', () => {
 
-//     beforeEach(() => {
-//         jest.spyOn(global, 'fetch')
-//         .mockImplementation(jest.fn(helpers.userFetchMock))
-//     })
+    beforeEach(() => {
+        jest.spyOn(global, 'fetch')
+        .mockImplementation(jest.fn(helpers.userFetchMock))
+    })
 
-//     afterEach(() => {
-//        jest.clearAllMocks();
-//     });
+    afterEach(() => {
+       jest.clearAllMocks();
+    });
 
-//     test('show all users in databases', async() => {
-//         return await helpers.showAllUsers().then(data => {
-//             const response: object = helpers.userPayload
-//             expect(data).toEqual(response)
-//         })
-//     });
+    test('show all users in databases', async() => {
+        return await helpers.showAllUsers().then(data => {
+            const response: object = helpers.userPayload
+            expect(data).toEqual(response)
+        })
+    });
 
-//     test('test get user profile', async() => {
-//         await helpers.getUserProfile(4).then((data) => {
-//             expect(data).toEqual(helpers.userPayload);
-//         })
-//     })
+    test('test get user profile', async() => {
+        await helpers.getUserProfile(4).then((data) => {
+            expect(data).toEqual(helpers.userPayload);
+        })
+    })
 
-// });
+});
 
 describe('Test login', () => {
 
+    beforeEach(() => {
+        jest.spyOn(global, 'fetch')
+        .mockImplementation(jest.fn(helpers.generateTokenResponse))
+    })
+
+    afterEach(() => {
+        jest.clearAllMocks();
+        jest.restoreAllMocks();
+    })
+
     test('login user', async() => {
         await helpers.loginUser(helpers.loginPayload)
-        .then((data) => console.log(data))
-        .catch((err) => console.log(err))
-    })
+        .then((data) => expect(data).toEqual(helpers.GenTokenEnum.GENERATED_TOKEN))
+    });
 })
 
 describe('Test CRUD users', () => {
