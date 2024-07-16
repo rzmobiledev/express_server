@@ -1,11 +1,16 @@
+const fs = require('fs');
+const path = require('path');
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import {NextFunction, Request, Response } from 'express';
+import multer, { FileFilterCallback } from 'multer';
+import { fileURLToPath } from 'url';
 import { ErrorMsgEnum, PasswordEnum, SuccessMsgEnum } from './enum';
 import * as types from './type';
-import { Model } from 'sequelize';
+
 
 dotenv.config();
+
 
 const User = require("../models").User;
 const Level = require("../models").AuthLevel;
@@ -116,7 +121,7 @@ export class EncodeDecodeJWTToken {
         )
     }
 
-    public async decodeJWTToken(): Promise<string|object> {
+    public async decodeJWTToken(): Promise<types.DecodedKeyResponseType> {
         return await jwt.verify(this.key.email, PasswordEnum.SECRET_KEY, (err: types.jwtErrorType, decoded: types.decodedKeyParamsType) => {
             if(err) throw(ErrorMsgEnum.TOKEN_EXPIRED)
             return decoded;
@@ -142,9 +147,10 @@ export async function verifyJWTToken(req: Request, res: Response, next: NextFunc
     if(!token) return res.status(403).json({message: ErrorMsgEnum.ACCESS_DENIED});
     const encoded_token: types.JWTType = { email: token, level: 1 }
     const decodeToken = new EncodeDecodeJWTToken(encoded_token);
-
+    
     try{
-        await decodeToken.decodeJWTToken();
+        const decodedToken: types.DecodedKeyResponseType = await decodeToken.decodeJWTToken();
+        res.locals.auth = decodedToken.key;
         next();
     } catch(err){
         res.status(401).json({message: err});
@@ -471,4 +477,50 @@ export function filterOnlyTagsID(articleTags: types.TagObject[]): number[]{
         tagsIDs.push(articleTags[i].id);
     }
     return tagsIDs;
+}
+
+const fileStorage = multer.diskStorage({
+    destination: (
+        request: Request,
+        file: Express.Multer.File,
+        callback: types.DestinationCallback
+    ): void => {
+        const path = 'public/uploads'
+        createFolderIfNotExist(path, callback);
+    },
+
+    filename: (
+        req: Request,
+        file: Express.Multer.File,
+        callback: types.FileNameCallback
+    ): void => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+        callback(null, uniqueSuffix+'-'+file.originalname);
+    }
+});
+
+const fileFilter = (
+    req: Request,
+    file: Express.Multer.File,
+    callback: FileFilterCallback
+): void => {
+    if(
+        file.mimetype === 'image/png' ||
+        file.mimetype === 'image/jpg' ||
+        file.mimetype === 'image/jpeg'
+    ) {
+        callback(null, true);
+    } else callback(null, false);
+}
+
+export const uploadFile = multer({storage: fileStorage, fileFilter: fileFilter, limits: { fileSize: 500000}});
+
+export function createFolderIfNotExist(folderName: string, callback: types.DestinationCallback){
+    fs.exists(path.join(folderName), (exists: boolean) => {
+        if(!exists){
+            const paths = path.resolve(folderName)
+            fs.mkdirSync(paths, {recursive: true});
+        }
+        callback(null, folderName)
+    });
 }

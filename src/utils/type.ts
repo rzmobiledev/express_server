@@ -1,4 +1,5 @@
 import {Response} from 'express';
+import { FileFilterCallback } from 'multer';
 
 export function ObjectType<X extends string, T>(url: X, arg: T): T {
     return arg;
@@ -46,6 +47,12 @@ export type decodedKeyParamsType = JWTType
 export type JWTType = {
     email: string;
     level: number;
+}
+
+export type DecodedKeyResponseType = {
+  key: JWTType;
+  iat: number;
+  exp: number;
 }
 
 export interface UserBodyInterface {
@@ -153,3 +160,6 @@ export type UserLoginType = {
     email: string;
     password: string
 }
+
+export type DestinationCallback = (error: Error | null, destination: string) => void;
+export type FileNameCallback = (error: Error | null, filename: string) => void;
