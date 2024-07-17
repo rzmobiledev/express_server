@@ -1,10 +1,10 @@
 const fs = require('fs');
+const { mkdir, unlink } = require('node:fs/promises');
 const path = require('path');
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import {NextFunction, Request, Response } from 'express';
 import multer, { FileFilterCallback } from 'multer';
-import { fileURLToPath } from 'url';
 import { ErrorMsgEnum, PasswordEnum, SuccessMsgEnum } from './enum';
 import * as types from './type';
 
@@ -102,7 +102,6 @@ export class UserBodyParams implements types.UserBodyInterface{
         return this.active
     }
 }
-
 export class EncodeDecodeJWTToken {
     private key: types.JWTType;
 
@@ -145,7 +144,7 @@ export async function encryptUserPassword(password: string): Promise<string> {
 export async function verifyJWTToken(req: Request, res: Response, next: NextFunction){
     const token = req.header("Authorization")?.replace("Bearer ","");
     if(!token) return res.status(403).json({message: ErrorMsgEnum.ACCESS_DENIED});
-    const encoded_token: types.JWTType = { email: token, level: 1 }
+    const encoded_token: types.JWTType = { id:0, email: token, level: 1 }
     const decodeToken = new EncodeDecodeJWTToken(encoded_token);
     
     try{
@@ -188,7 +187,11 @@ export async function compareUserPassword(req: Request, res: Response){
 
     if(userExists){
         const hashed_password = userExists.dataValues?.password;
-        const data_to_encode: types.JWTType = { email: email, level: userExists.dataValues?.role}
+        const data_to_encode: types.JWTType = {
+            id: userExists.id,
+            email: email, 
+            level: userExists.dataValues?.role,
+        }
 
         bcrypt.compare(password, hashed_password, (err, result) => {
             if(err) return res.status(400).send({message: ErrorMsgEnum.COMPARING_PASSWDERROR});
@@ -229,6 +232,7 @@ export class ErrResHandler implements types.ErrorType{
 
         if(error in err) return this.res.status(400).send({message: ErrorMsgEnum.SOFT_DELETED_DETECT});
         else if(isForeignKeyError) return this.res.status(400).send({message: err.parent.detail});
+        else if(err instanceof multer.MulterError) return this.res.status(400).send({message: err.message});
         return this.res.status(400).send({message: ErrorMsgEnum.UNKNOWN_ERROR});
     }
     get_404_articleNotFound(): Response {
@@ -480,13 +484,13 @@ export function filterOnlyTagsID(articleTags: types.TagObject[]): number[]{
 }
 
 const fileStorage = multer.diskStorage({
-    destination: (
+    destination: async(
         request: Request,
         file: Express.Multer.File,
         callback: types.DestinationCallback
-    ): void => {
+    ): Promise<void> => {
         const path = 'public/uploads'
-        createFolderIfNotExist(path, callback);
+        await createFolderIfNotExist(path, callback);
     },
 
     filename: (
@@ -515,12 +519,31 @@ const fileFilter = (
 
 export const uploadFile = multer({storage: fileStorage, fileFilter: fileFilter, limits: { fileSize: 500000}});
 
-export function createFolderIfNotExist(folderName: string, callback: types.DestinationCallback){
-    fs.exists(path.join(folderName), (exists: boolean) => {
+export async function createFolderIfNotExist(folderName: string, callback: types.DestinationCallback){
+    await fs.exists(path.join(folderName), async(exists: boolean) => {
         if(!exists){
             const paths = path.resolve(folderName)
-            fs.mkdirSync(paths, {recursive: true});
+            await mkdir(paths, {recursive: true});
         }
         callback(null, folderName)
     });
+}
+
+export function mapImageWithUserId(req: Request, userAccess: types.JWTType): types.MulterResType[] {
+    const articleId = req.body?.articleId ?? null;
+    const imageFiles: types.MulterResType[] = req.files as Express.Multer.File[];
+    
+    const imageWithUserID: types.MulterResType[] = imageFiles.map(({filename: name, ...res}) => ({name, ...res, userId: userAccess.id, articleId: articleId}));
+    
+    return imageWithUserID;
+}
+
+export async function deleteFiles(fileName: types.MulterResType[]): Promise<void>{
+    const isFileExists = fileName.length > 0;
+    const path = 'public/uploads/';
+    if(isFileExists){
+        for(let i=0; i < fileName.length; i++){
+            await unlink(path+fileName[i].name);
+        }
+    }
 }

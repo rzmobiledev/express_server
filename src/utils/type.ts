@@ -45,6 +45,7 @@ export type jwtErrorType = {
 export type decodedKeyParamsType = JWTType
 
 export type JWTType = {
+    id: number;
     email: string;
     level: number;
 }
@@ -163,3 +164,17 @@ export type UserLoginType = {
 
 export type DestinationCallback = (error: Error | null, destination: string) => void;
 export type FileNameCallback = (error: Error | null, filename: string) => void;
+
+export type MulterResType = {
+    fieldname: string;
+    originalname: string;
+    encoding: string;
+    mimetype: string;
+    destination: string;
+    filename?: string;
+    name?:string;
+    path: string;
+    size: number;
+    userId?: number;
+    articleId?: number;
+}

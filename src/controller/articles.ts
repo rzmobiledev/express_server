@@ -62,7 +62,7 @@ module.exports = {
                     model: Tag,
                     as: 'tags'
                 }]
-            })
+            });
             
             return res.status(201).json(result)
         }catch(err){
