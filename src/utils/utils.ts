@@ -1,11 +1,11 @@
 const fs = require('fs');
+const { mkdir, unlink } = require('node:fs/promises');
 const path = require('path');
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
-import {NextFunction, Request, Response, Express } from 'express';
+import {NextFunction, Request, Response } from 'express';
 import multer, { FileFilterCallback } from 'multer';
-import { fileURLToPath } from 'url';
-import { ErrorMsgEnum, PasswordEnum, SuccessMsgEnum } from './enum';
+import { ErrorMsgEnum, PasswordEnum, SuccessMsgEnum, UserLevelEnum } from './enum';
 import * as types from './type';
 
 
@@ -16,6 +16,7 @@ const User = require("../models").User;
 const Level = require("../models").AuthLevel;
 const Article = require('../models').Article;
 const Tag = require('../models').Tag;
+const Gallery = require('../models').Gallery;
 const jwt = require("jsonwebtoken");
 
 export class UserResponseObject implements types.UserObjNoPasswordType{
@@ -102,7 +103,6 @@ export class UserBodyParams implements types.UserBodyInterface{
         return this.active
     }
 }
-
 export class EncodeDecodeJWTToken {
     private key: types.JWTType;
 
@@ -121,7 +121,7 @@ export class EncodeDecodeJWTToken {
         )
     }
 
-    public async decodeJWTToken(): Promise<string|object> {
+    public async decodeJWTToken(): Promise<types.DecodedKeyResponseType> {
         return await jwt.verify(this.key.email, PasswordEnum.SECRET_KEY, (err: types.jwtErrorType, decoded: types.decodedKeyParamsType) => {
             if(err) throw(ErrorMsgEnum.TOKEN_EXPIRED)
             return decoded;
@@ -145,11 +145,12 @@ export async function encryptUserPassword(password: string): Promise<string> {
 export async function verifyJWTToken(req: Request, res: Response, next: NextFunction){
     const token = req.header("Authorization")?.replace("Bearer ","");
     if(!token) return res.status(403).json({message: ErrorMsgEnum.ACCESS_DENIED});
-    const encoded_token: types.JWTType = { email: token, level: 1 }
+    const encoded_token: types.JWTType = { id:0, email: token, level: 1 }
     const decodeToken = new EncodeDecodeJWTToken(encoded_token);
-
+    
     try{
-        await decodeToken.decodeJWTToken();
+        const decodedToken: types.DecodedKeyResponseType = await decodeToken.decodeJWTToken();
+        res.locals.auth = decodedToken.key;
         next();
     } catch(err){
         res.status(401).json({message: err});
@@ -187,7 +188,11 @@ export async function compareUserPassword(req: Request, res: Response){
 
     if(userExists){
         const hashed_password = userExists.dataValues?.password;
-        const data_to_encode: types.JWTType = { email: email, level: userExists.dataValues?.role}
+        const data_to_encode: types.JWTType = {
+            id: userExists.id,
+            email: email, 
+            level: userExists.dataValues?.role,
+        }
 
         bcrypt.compare(password, hashed_password, (err, result) => {
             if(err) return res.status(400).send({message: ErrorMsgEnum.COMPARING_PASSWDERROR});
@@ -228,6 +233,7 @@ export class ErrResHandler implements types.ErrorType{
 
         if(error in err) return this.res.status(400).send({message: ErrorMsgEnum.SOFT_DELETED_DETECT});
         else if(isForeignKeyError) return this.res.status(400).send({message: err.parent.detail});
+        else if(err instanceof multer.MulterError) return this.res.status(400).send({message: err.message});
         return this.res.status(400).send({message: ErrorMsgEnum.UNKNOWN_ERROR});
     }
     get_404_articleNotFound(): Response {
@@ -238,6 +244,9 @@ export class ErrResHandler implements types.ErrorType{
     }
     get_404_userNotFound(): Response {
         return this.res.status(404).json({message: ErrorMsgEnum.ID_NOT_FOUND});
+    }
+    get_404_galleryNotFound(): Response {
+        return this.res.status(404).json({message: ErrorMsgEnum.GALLERY_NOT_FOUND});
     }
     get_404_levelNotFound(): Response {
         return this.res.status(404).json({message: ErrorMsgEnum.LEVEL_NOT_FOUND});
@@ -250,6 +259,12 @@ export class ErrResHandler implements types.ErrorType{
     }
     get_401_levelExists(): Response {
         return this.res.status(401).send({message: ErrorMsgEnum.LEVEL_EXISTS});
+    }
+    get_401_unAuthorized(): Response {
+        return this.res.status(401).send({message: ErrorMsgEnum.UNAUTHORIZED});
+    }
+    get_401_galleryCantBeDeleted(): Response {
+        return this.res.status(401).send({message: ErrorMsgEnum.GALLERY_CANTBE_DELETED});
     }
     get_405_passwdEmpty(): Response {
         return this.res.status(405).send({message: ErrorMsgEnum.PASSWORD_EMPTY})
@@ -289,8 +304,6 @@ export class ArticleSuccessResHandler implements types.ArticleSuccessType {
     get_200_articleDeleted(): Response {
         return this.res.status(200).json({message: SuccessMsgEnum.ARTICLE_DELETED})
     }
-
-
 }
 
 export class LevelSuccessResHandler implements types.LevelSuccessType{
@@ -479,13 +492,13 @@ export function filterOnlyTagsID(articleTags: types.TagObject[]): number[]{
 }
 
 const fileStorage = multer.diskStorage({
-    destination: (
+    destination: async(
         request: Request,
         file: Express.Multer.File,
         callback: types.DestinationCallback
-    ): void => {
+    ): Promise<void> => {
         const path = 'public/uploads'
-        createFolderIfNotExist(path, callback);
+        await createFolderIfNotExist(path, callback);
     },
 
     filename: (
@@ -493,7 +506,8 @@ const fileStorage = multer.diskStorage({
         file: Express.Multer.File,
         callback: types.FileNameCallback
     ): void => {
-        callback(null, file.originalname);
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+        callback(null, uniqueSuffix+'-'+file.originalname);
     }
 });
 
@@ -511,14 +525,72 @@ const fileFilter = (
     } else callback(null, false);
 }
 
-export const uploadFile = multer({storage: fileStorage, fileFilter: fileFilter});
+export const uploadFile = multer({storage: fileStorage, fileFilter: fileFilter, limits: { fileSize: 500000}});
 
-export function createFolderIfNotExist(folderName: string, callback: types.DestinationCallback){
-    fs.exists(path.join(folderName), (exists: boolean) => {
+export async function createFolderIfNotExist(folderName: string, callback: types.DestinationCallback){
+    await fs.exists(path.join(folderName), async(exists: boolean) => {
         if(!exists){
             const paths = path.resolve(folderName)
-            fs.mkdirSync(paths, {recursive: true});
+            await mkdir(paths, {recursive: true});
         }
         callback(null, folderName)
     });
+}
+
+export function mapImageWithUserId(req: Request, userAccess: types.JWTType): types.MulterResType[] {
+    const articleId = req.body?.articleId ?? null;
+    const imageFiles: types.MulterResType[] = req.files as Express.Multer.File[];
+    
+    const imageWithUserID: types.MulterResType[] = imageFiles.map(({filename: name, ...res}) => ({name, ...res, userId: userAccess.id, articleId: articleId}));
+    
+    return imageWithUserID;
+}
+
+export async function deleteFiles(fileName: types.MulterResType[]): Promise<void>{
+    const isFileExists = fileName.length > 0;
+    const folderPath = 'public/uploads/';
+    if(isFileExists){
+        for(let i=0; i < fileName.length; i++){
+            await unlink(folderPath+fileName[i].name);
+        }
+    }
+}
+
+export function allowAdminAccess(userAccess: types.JWTType): boolean{
+    if(
+        userAccess.level === UserLevelEnum.SUPERADMIN ||
+        userAccess.level === UserLevelEnum.ADMIN
+    ) return true;
+    return false;
+}
+
+
+export async function deleteImages(imageName: types.GalleryType[]){
+    const folderPath = 'public/uploads/'
+    const isImageExists: boolean = imageName.length > 0;
+
+    if(isImageExists){
+        for(let i=0; i < imageName.length; i++){
+            await unlink(folderPath+imageName[i].name)
+        }
+    }
+}
+
+export async function delGalleryByAdmin(gallery: typeof Gallery): Promise<void>{
+    await gallery.destroy();
+    const format_to_galleryType: types.GalleryType[] = [];
+    format_to_galleryType.push(gallery)
+    await deleteImages(format_to_galleryType);
+}
+
+export async function isGalleryExistAndDeleted(user: types.JWTType, galleryID: number): Promise<boolean>{
+    const galleries: types.GalleryType[] = await Gallery.findAll(
+        {where: {id: galleryID, userId: user.id}}
+    );
+    if(galleries){
+        await Gallery.destroy({where: {id: galleryID}});
+        await deleteImages(galleries);
+        return true;
+    }
+    return false;
 }

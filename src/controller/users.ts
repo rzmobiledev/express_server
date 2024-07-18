@@ -6,7 +6,6 @@ module.exports = {
 
     async listUser(req: Request, res: Response){
         const error = new utils.ErrResHandler(res);
-        
         try{
             const _user = await User
             .findAll({

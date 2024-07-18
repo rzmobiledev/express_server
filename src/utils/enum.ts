@@ -22,6 +22,8 @@ export const ErrorMsgEnum = Object.freeze({
     ID_NOT_FOUND: "ID Not Found!",
     ARTICLE_NOT_FOUND: "Article not found",
     CATEGORY_NOT_FOUND: "Category not found",
+    GALLERY_NOT_FOUND: "Gallery not found",
+    GALLERY_CANTBE_DELETED: "Gallery not found or you are not authorized to delete.",
     EMAIL_ALREADY_REGISTERED: "This email is already registered.",
     ACCESS_DENIED: "Access Denied!",
     TOKEN_EXPIRED: "Your token expired.",
@@ -33,7 +35,8 @@ export const ErrorMsgEnum = Object.freeze({
     UNKNOWN_ERROR: 'Unknown Error. Report to admin.',
     COMPARING_PASSWDERROR: 'Error comparing password.',
     PASSWORD_NOT_MATCH: 'Password does not match',
-    UNAUTHORIZED: 'You are unauthorized!'
+    UNAUTHORIZED: 'You are unauthorized!',
+
 });
 
 export const SuccessMsgEnum = Object.freeze({
@@ -43,6 +46,8 @@ export const SuccessMsgEnum = Object.freeze({
     LEVEL_UPDATED: 'Level updated.',
     LEVEL_DELETED: 'Level deleted.',
     ARTICLE_DELETED: 'Article deleted.',
+    GALLERY_DELETED: 'Gallery deleted.',
+    ALL_GALLERY_DELETED: 'All galleries completely deleted.'
 })
 
 export const UserLevelEnum = Object.freeze({

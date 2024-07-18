@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyJWTToken, uploadFile } from '../utils/utils';
+import { verifyJWTToken } from '../utils/utils';
 
 const UserRoutes = require('./users');
 const LevelRoutes = require('./authlevels');
@@ -36,6 +36,10 @@ router.get('/category', verifyJWTToken, Categories.getAllCategories);
 router.put('/category/:id', verifyJWTToken, Categories.updateCategory);
 router.delete('/category/:id', verifyJWTToken, Categories.deleteCategory);
 
-router.post('/gallery', uploadFile.single('filename'), Galleries.uploadFiles);
+router.post('/gallery', verifyJWTToken, Galleries.uploadGallery);
+router.get('/gallery', verifyJWTToken, Galleries.showAllGallery);
+router.delete('/gallery', verifyJWTToken, Galleries.deleteAllGallery);
+router.delete('/gallery/:id', verifyJWTToken, Galleries.deleteOneGallery);
+router.get('/gallery/:id', verifyJWTToken, Galleries.showGalleryByID);
 
 export default router;

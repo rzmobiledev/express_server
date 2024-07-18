@@ -20,6 +20,7 @@ module.exports = {
       },
       articleId: {
         type: Sequelize.INTEGER,
+        allowNull: true,
         references: {
           model: {
             tableName: 'Articles'
