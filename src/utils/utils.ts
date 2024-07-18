@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import {NextFunction, Request, Response } from 'express';
 import multer, { FileFilterCallback } from 'multer';
-import { ErrorMsgEnum, PasswordEnum, SuccessMsgEnum } from './enum';
+import { ErrorMsgEnum, PasswordEnum, SuccessMsgEnum, UserLevelEnum } from './enum';
 import * as types from './type';
 
 
@@ -16,6 +16,7 @@ const User = require("../models").User;
 const Level = require("../models").AuthLevel;
 const Article = require('../models').Article;
 const Tag = require('../models').Tag;
+const Gallery = require('../models').Gallery;
 const jwt = require("jsonwebtoken");
 
 export class UserResponseObject implements types.UserObjNoPasswordType{
@@ -244,6 +245,9 @@ export class ErrResHandler implements types.ErrorType{
     get_404_userNotFound(): Response {
         return this.res.status(404).json({message: ErrorMsgEnum.ID_NOT_FOUND});
     }
+    get_404_galleryNotFound(): Response {
+        return this.res.status(404).json({message: ErrorMsgEnum.GALLERY_NOT_FOUND});
+    }
     get_404_levelNotFound(): Response {
         return this.res.status(404).json({message: ErrorMsgEnum.LEVEL_NOT_FOUND});
     }
@@ -255,6 +259,12 @@ export class ErrResHandler implements types.ErrorType{
     }
     get_401_levelExists(): Response {
         return this.res.status(401).send({message: ErrorMsgEnum.LEVEL_EXISTS});
+    }
+    get_401_unAuthorized(): Response {
+        return this.res.status(401).send({message: ErrorMsgEnum.UNAUTHORIZED});
+    }
+    get_401_galleryCantBeDeleted(): Response {
+        return this.res.status(401).send({message: ErrorMsgEnum.GALLERY_CANTBE_DELETED});
     }
     get_405_passwdEmpty(): Response {
         return this.res.status(405).send({message: ErrorMsgEnum.PASSWORD_EMPTY})
@@ -294,8 +304,6 @@ export class ArticleSuccessResHandler implements types.ArticleSuccessType {
     get_200_articleDeleted(): Response {
         return this.res.status(200).json({message: SuccessMsgEnum.ARTICLE_DELETED})
     }
-
-
 }
 
 export class LevelSuccessResHandler implements types.LevelSuccessType{
@@ -540,10 +548,49 @@ export function mapImageWithUserId(req: Request, userAccess: types.JWTType): typ
 
 export async function deleteFiles(fileName: types.MulterResType[]): Promise<void>{
     const isFileExists = fileName.length > 0;
-    const path = 'public/uploads/';
+    const folderPath = 'public/uploads/';
     if(isFileExists){
         for(let i=0; i < fileName.length; i++){
-            await unlink(path+fileName[i].name);
+            await unlink(folderPath+fileName[i].name);
         }
     }
+}
+
+export function allowAdminAccess(userAccess: types.JWTType): boolean{
+    if(
+        userAccess.level === UserLevelEnum.SUPERADMIN ||
+        userAccess.level === UserLevelEnum.ADMIN
+    ) return true;
+    return false;
+}
+
+
+export async function deleteImages(imageName: types.GalleryType[]){
+    const folderPath = 'public/uploads/'
+    const isImageExists: boolean = imageName.length > 0;
+
+    if(isImageExists){
+        for(let i=0; i < imageName.length; i++){
+            await unlink(folderPath+imageName[i].name)
+        }
+    }
+}
+
+export async function delGalleryByAdmin(gallery: typeof Gallery): Promise<void>{
+    await gallery.destroy();
+    const format_to_galleryType: types.GalleryType[] = [];
+    format_to_galleryType.push(gallery)
+    await deleteImages(format_to_galleryType);
+}
+
+export async function isGalleryExistAndDeleted(user: types.JWTType, galleryID: number): Promise<boolean>{
+    const galleries: types.GalleryType[] = await Gallery.findAll(
+        {where: {id: galleryID, userId: user.id}}
+    );
+    if(galleries){
+        await Gallery.destroy({where: {id: galleryID}});
+        await deleteImages(galleries);
+        return true;
+    }
+    return false;
 }

@@ -13,13 +13,13 @@ export const loginPayload: UserLoginType = {
 }
 
 export const userPayload: UserObjNoReadOnlyType = {
-    firstName: 'Rizals',
-    lastName: 'Safrizal',
-    username: 'rizal',
-    email: 'rzmobiledev@gmail.com',
-    password: 'password1234',
+    firstName: 'Iva',
+    lastName: 'Izazaya',
+    username: 'iva',
+    email: 'iva@gmail.com',
+    password: 'maruco',
     id: 3,
-    role: 2,
+    role: 3,
     active: false,
     createdAt: new Date(),
     updatedAt: new Date(),

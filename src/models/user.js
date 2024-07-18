@@ -10,6 +10,15 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
+      User.belongsTo(models.Authlevel, {
+        foreignKey: 'role',
+        targetKey: 'id'
+      });
+
+      User.hasMany(models.Gallery, {
+        foreignKey: 'userId',
+        targetKey: 'id'
+      })
       
     }
   }

@@ -2,7 +2,7 @@ require('dotenv').config();
 import * as utils from '../utils/utils';
 
 const User = require('../models').User
-const AuthLevel = require('../models').AuthLevel;
+const AuthLevel = require('../models').Authlevel;
 import { UserObjNoReadOnlyType } from "./type";
 
 
@@ -39,15 +39,17 @@ async function createLEvel(){
 async function createUser(){
 
     try{
+        await AuthLevel.bulkCreate(UserLevel);
+
         const _user: typeof User = await User.create(userPayload);
-            const hashed_password = await utils.encryptUserPassword(userPayload.password);
+        const hashed_password = await utils.encryptUserPassword(userPayload.password);
+        
+        _user.password = hashed_password;
+        _user.role = userPayload.role;
+        _user.active = userPayload.active;
+        _user.save();
             
-            _user.password = hashed_password;
-            _user.role = userPayload.role;
-            _user.active = userPayload.active;
-            _user.save();
-            
-            return console.log('User created sucessfuly!');
+        return console.log('User and level created sucessfuly!');
 
     }catch(err){
         console.log(err)
@@ -55,5 +57,4 @@ async function createUser(){
 }
 
 
-createLEvel();
 createUser();

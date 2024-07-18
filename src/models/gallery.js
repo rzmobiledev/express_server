@@ -15,7 +15,8 @@ module.exports = (sequelize, DataTypes) => {
       });
       
       Gallery.belongsTo(models.Article, {
-        foreignKey: 'articleId'
+        foreignKey: 'articleId',
+        targetKey: 'id'
       });
     }
   }

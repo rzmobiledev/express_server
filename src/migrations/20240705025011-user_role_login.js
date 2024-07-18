@@ -18,7 +18,8 @@ module.exports = {
           model: 'Authlevels',
           key: 'id'
         },
-        allowNull: false
+        allowNull: false,
+        onDelete: 'CASCADE'
       }
     ),
 

@@ -13,6 +13,7 @@ import * as helpers from './helpers';
 import * as Utils from '../src/utils/utils';
 import * as ENUM from '../src/utils/enum';
 import { GenTokenEnum } from './helpers';
+import { JWTType } from '../src/utils/type';
 const jwt = require('jsonwebtoken');
 
 describe('Test Hompage', () => {
@@ -184,7 +185,9 @@ describe('Test JWT Token', () => {
     let mockDecodedToken: any;
     const email = helpers.userPayload.email;
     const level = helpers.userPayload.role;
-    const data_to_encode = { email: email, level: level}
+    const data_to_encode: JWTType = {
+        email: email, level: level
+    }
     
 
     beforeEach(() => {

@@ -45,7 +45,7 @@ export type jwtErrorType = {
 export type decodedKeyParamsType = JWTType
 
 export type JWTType = {
-    id: number;
+    id?: number;
     email: string;
     level: number;
 }
@@ -151,6 +151,13 @@ export type TagObject = {
 export type TagObjNoId = NoIdType<TagObject>
 
 export type ArticleTagsType = {
+    readonly id: number;
+    readonly name: string;
+    readonly createdAt?: Date;
+    readonly updatedAt?: Date;
+}
+
+export type GalleryType = {
     readonly id: number;
     readonly name: string;
     readonly createdAt?: Date;
