@@ -35,7 +35,7 @@ module.exports = {
             return res.status(200).json(userResponseObject);
 
         } catch(err){
-            return utils.errorResHandler(res, err);
+            return error.get_globalError(err);
         }
     },
 
@@ -133,7 +133,7 @@ module.exports = {
             return success.get_201_passwordUpdated();
             
         } catch(err){
-            return utils.errorResHandler(res, err);
+            return error.get_globalError(err);
         }
     },
 

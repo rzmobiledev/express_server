@@ -1,10 +1,11 @@
 require('dotenv').config();
 import { SuccessMsgEnum } from '../src/utils/enum';
-import { UserObjNoReadOnlyType, LevelAccessNoIdNoReadonlyType, ArticleFieldNoIdNoRoType, CategoryNoIdType, UserLoginType } from '../src/utils/type';
+import { UserObjNoReadOnlyType, LevelAccessNoIdNoReadonlyType, ArticleFieldNoIdNoRoType, CategoryNoIdType, UserLoginType, JWTType, GalleryHttpResponseType } from '../src/utils/type';
+import { EncodeDecodeJWTToken } from '../src/utils/utils';
 const SequelizeMock = require('sequelize-mock');
 const dbMock = new SequelizeMock();
 
-
+const User = require("../src/models/").User;
 require('dotenv').config();
 
 export const loginPayload: UserLoginType = {
@@ -13,12 +14,12 @@ export const loginPayload: UserLoginType = {
 }
 
 export const userPayload: UserObjNoReadOnlyType = {
-    firstName: 'Iva',
-    lastName: 'Izazaya',
-    username: 'iva',
-    email: 'iva@gmail.com',
-    password: 'maruco',
-    id: 3,
+    firstName: String(process.env.USER_FIRSTNAME),
+    lastName: String(process.env.USER_LASTNAME),
+    username: String(process.env.USER_USERNAME),
+    email: String(process.env.USER_EMAIL),
+    password: String(process.env.USER_PASSWORD),
+    id: 1,
     role: 3,
     active: false,
     createdAt: new Date(),
@@ -102,12 +103,24 @@ export const ListLevelPayload: LevelAccessNoIdNoReadonlyType[] = [
     }
 ]
 
+export const successGalleryHttpResponse: GalleryHttpResponseType[] = [
+        {
+          id: 49,
+          name: '1721478932031-994797179-tester.png',
+          userId: 1,
+          articleId: null,
+          createdAt: '2024-07-20T12:35:32.032Z',
+          updatedAt: '2024-07-20T12:35:32.032Z'
+        }
+    ]
+
 const EndpointsEnum = Object.freeze({
     HOME: `http://${String(process.env.HOST)}:${Number(process.env.PORT)}` || 'http://localhost:5000',
     ALLUSERS: `http://${String(process.env.HOST)}:${Number(process.env.PORT)}/api/users`,
     LEVELS: `http://${String(process.env.HOST)}:${Number(process.env.PORT)}/api/levelauth`,
     ARTICLES: `http://${String(process.env.HOST)}:${Number(process.env.PORT)}/api/article`,
     CATEGORY: `http://${String(process.env.HOST)}:${Number(process.env.PORT)}/api/category`,
+    GALLERY: `http://${String(process.env.HOST)}:${Number(process.env.PORT)}/api/gallery`,
 });
 
 export const GenTokenEnum = Object.freeze({
@@ -127,12 +140,23 @@ async function GetEndpointResponse(url: string) {
     });
 }
 
-function PostEndpointResponse(url: string, method: string, payload?: UserObjNoReadOnlyType | LevelAccessNoIdNoReadonlyType | ArticleFieldNoIdNoRoType | CategoryNoIdType | UserLoginType){
+async function generateRealJWTToken(){
+    const data_to_encode: JWTType = {
+       id: userPayload.id, email: userPayload.email, level: userPayload.role
+    }
+    const generate_token = new EncodeDecodeJWTToken(data_to_encode);
+    const token = generate_token.generateJWTToken(30);
+    return token
+} 
+
+async function fetchEndpointResponse(url: string, method: string, payload?: UserObjNoReadOnlyType | LevelAccessNoIdNoReadonlyType | ArticleFieldNoIdNoRoType | CategoryNoIdType | UserLoginType | FormData | null){
+    const jwtToken = await generateRealJWTToken();
     return fetch(url, {
             method: method.toUpperCase(),
-            body: JSON.stringify(payload),
-            headers: {
-                "Content-Type": "application/json; charset=UTF-8"
+            body: payload instanceof FormData ? payload : JSON.stringify(payload),
+            headers: { 
+                'Accept': 'application/json, application/xml, text/plain, text/html, *.*',
+                'Authorization': `Bearer ${jwtToken}`, 
             }
         })
         .then(data => data.json())
@@ -152,79 +176,79 @@ export async function showAllUsers(){
 }
 
 export async function createAUser(payload: UserObjNoReadOnlyType){
-    return PostEndpointResponse(EndpointsEnum.ALLUSERS, 'POST', payload);
+    return await fetchEndpointResponse(EndpointsEnum.ALLUSERS, 'POST', payload);
 }
 
 export async function updateUser(userId: number, payload: UserObjNoReadOnlyType){
-    return PostEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId, 'PUT', payload)
+    return await fetchEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId, 'PUT', payload)
 }
 
 export async function changeUserProfile(userId: number, payload: UserObjNoReadOnlyType){
-    return PostEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId, 'PUT', payload)
+    return await fetchEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId, 'PUT', payload)
 }
 
 export async function changeUserPassword(userId: number, payload: UserObjNoReadOnlyType){
-    return await PostEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId+'/password', 'PUT', payload)
+    return await fetchEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId+'/password', 'PUT', payload)
 }
 
 export async function sofDeleteUser(userId: number){
-    return PostEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId, 'DELETE');
+    return await fetchEndpointResponse(EndpointsEnum.ALLUSERS+'/'+userId, 'DELETE');
 }
 
 export async function hardDeleteUser(userId: number, payload: UserObjNoReadOnlyType){
-    return PostEndpointResponse(EndpointsEnum.ALLUSERS+'/user/'+userId, 'DELETE', payload);
+    return await fetchEndpointResponse(EndpointsEnum.ALLUSERS+'/user/'+userId, 'DELETE', payload);
 }
 
 export async function createLevelAccessUser(payload: LevelAccessNoIdNoReadonlyType){    
-    return PostEndpointResponse(EndpointsEnum.LEVELS, 'POST', payload)
+    return await fetchEndpointResponse(EndpointsEnum.LEVELS, 'POST', payload)
 }
 
 export async function assignLevelAccessToUser(payload: UserObjNoReadOnlyType){
-    return PostEndpointResponse(EndpointsEnum.ALLUSERS+'/levelauth', 'POST', payload)
+    return await fetchEndpointResponse(EndpointsEnum.ALLUSERS+'/levelauth', 'POST', payload)
 }
 
 export async function changeLevelAccessUser(levelId: number, payload: LevelAccessNoIdNoReadonlyType){
-    return PostEndpointResponse(EndpointsEnum.LEVELS+'/'+levelId, 'PUT', payload)
+    return await fetchEndpointResponse(EndpointsEnum.LEVELS+'/'+levelId, 'PUT', payload)
 }
 
 export async function removeLevelAccessUser(levelId: number, payload: LevelAccessNoIdNoReadonlyType){
-    return PostEndpointResponse(EndpointsEnum.LEVELS+'/'+levelId, 'DELETE', payload);
+    return await fetchEndpointResponse(EndpointsEnum.LEVELS+'/'+levelId, 'DELETE', payload);
 }
 
 export async function getOneLevelAccess(levelId: number, payload: LevelAccessNoIdNoReadonlyType){
-    return GetEndpointResponse(EndpointsEnum.LEVELS+'/'+levelId);
+    return await GetEndpointResponse(EndpointsEnum.LEVELS+'/'+levelId);
 }
 
 export async function createNewArticle(payload: ArticleFieldNoIdNoRoType){
-    return PostEndpointResponse(EndpointsEnum.ARTICLES, 'POST', payload);
+    return await fetchEndpointResponse(EndpointsEnum.ARTICLES, 'POST', payload);
 }
 
 export async function updateArticle(levelId: number, payload: ArticleFieldNoIdNoRoType){
-    return PostEndpointResponse(EndpointsEnum.ARTICLES+'/'+levelId, 'PUT', payload);
+    return await fetchEndpointResponse(EndpointsEnum.ARTICLES+'/'+levelId, 'PUT', payload);
 }
 
 export async function getAllArticles(){
-    return GetEndpointResponse(EndpointsEnum.ARTICLES);
+    return await GetEndpointResponse(EndpointsEnum.ARTICLES);
 }
 
 export async function getOneArticle(articleId: number){
-    return GetEndpointResponse(EndpointsEnum.ARTICLES+'/'+articleId);
+    return await GetEndpointResponse(EndpointsEnum.ARTICLES+'/'+articleId);
 }
 
 export async function deleteArticle(levelId: number, payload: ArticleFieldNoIdNoRoType){
-    return PostEndpointResponse(EndpointsEnum.ARTICLES+'/'+levelId, 'DELETE', payload);
+    return await fetchEndpointResponse(EndpointsEnum.ARTICLES+'/'+levelId, 'DELETE', payload);
 }
 
 export async function createCategory(payload: CategoryNoIdType){
-    return PostEndpointResponse(EndpointsEnum.CATEGORY, 'POST', payload);
+    return await fetchEndpointResponse(EndpointsEnum.CATEGORY, 'POST', payload);
 }
 
 export async function getCategById(categId: number){
-    return GetEndpointResponse(EndpointsEnum.CATEGORY+'/'+categId);
+    return await GetEndpointResponse(EndpointsEnum.CATEGORY+'/'+categId);
 }
 
 export async function getAllCategories(){
-    return GetEndpointResponse(EndpointsEnum.CATEGORY);
+    return await GetEndpointResponse(EndpointsEnum.CATEGORY);
 }
 
 export function hashedPasswordMock(): Promise<string> {
@@ -232,15 +256,23 @@ export function hashedPasswordMock(): Promise<string> {
 }
 
 export async function updateCategory(categId: number, payload: CategoryNoIdType){
-    return PostEndpointResponse(EndpointsEnum.CATEGORY+'/'+categId, 'PUT', payload);
+    return await fetchEndpointResponse(EndpointsEnum.CATEGORY+'/'+categId, 'PUT', payload);
 }
 
 export async function deleteCategory(categId: number, payload: CategoryNoIdType){
-    return PostEndpointResponse(EndpointsEnum.CATEGORY+'/'+categId, 'DELETE', payload);
+    return await fetchEndpointResponse(EndpointsEnum.CATEGORY+'/'+categId, 'DELETE', payload);
 }
 
 export async function loginUser(payload: UserLoginType){
-    return PostEndpointResponse(EndpointsEnum.ALLUSERS+'/login', 'POST', payload)
+    return await fetchEndpointResponse(EndpointsEnum.ALLUSERS+'/login', 'POST', payload)
+}
+
+export async function uploadGallery(payload: FormData | null){
+    return await fetchEndpointResponse(EndpointsEnum.GALLERY, 'POST', payload)
+}
+
+export async function deleteGallery(galleryId: number){
+    return await fetchEndpointResponse(EndpointsEnum.GALLERY+'/'+galleryId, 'DELETE')
 }
 
 const globalResponse = (payload: any): Promise<Response> => {
@@ -272,4 +304,8 @@ export function createCategoryResponse(){
 
 export function generateTokenResponse(){
     return globalResponse(GenTokenEnum.GENERATED_TOKEN);
+}
+
+export function createImageUploadResponse(){
+    return globalResponse(successGalleryHttpResponse)
 }

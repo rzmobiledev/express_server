@@ -185,7 +185,6 @@ export function isAllUserFieldsSatisfied(firstName: string, lastName: string, em
 export async function compareUserPassword(req: Request, res: Response){
     const { email, password } = req.body;
     const userExists = await User.findOne({ where: {email: email} });
-
     if(userExists){
         const hashed_password = userExists.dataValues?.password;
         const data_to_encode: types.JWTType = {
@@ -212,11 +211,6 @@ function encodedUserPassword(payload: types.JWTType): string{
     const encode_token = new EncodeDecodeJWTToken(payload);
     const token = encode_token.generateJWTToken(120);
     return token;
-}
-
-export function errorResHandler(res: Response, error: any): Response {
-    if('errors' in error) return res.status(400).send({message: ErrorMsgEnum.SOFT_DELETED_DETECT});
-    return res.status(400).send({message: ErrorMsgEnum.URL_NOT_EXISTS});
 }
 
 export class ErrResHandler implements types.ErrorType{

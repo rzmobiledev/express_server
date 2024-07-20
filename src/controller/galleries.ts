@@ -59,10 +59,10 @@ module.exports = {
     async uploadGallery(req: Request, res: Response){
         const error = new ErrResHandler(res);
         const userAccess: JWTType = res.locals?.auth;
-
         try{
 
             uploadFile.array('filenames')(req, res, async (err) => {
+                console.log(userAccess)
                 if(err) return error.get_globalError(err);
                 const imageWithUserID: MulterResType[] = mapImageWithUserId(req, userAccess); 
                
