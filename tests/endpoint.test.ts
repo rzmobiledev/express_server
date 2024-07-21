@@ -1,4 +1,3 @@
-
 import {
     describe,
     expect,
@@ -8,13 +7,21 @@ import {
     afterEach,
 } from '@jest/globals';
 
+
 import * as helpers from './helpers';
 
 import * as Utils from '../src/utils/utils';
 import * as ENUM from '../src/utils/enum';
 import { GenTokenEnum } from './helpers';
-import { JWTType } from '../src/utils/type';
+import { JWTType, decodedKeyParamsType } from '../src/utils/type';
 const jwt = require('jsonwebtoken');
+const path = require('path');
+
+const email = helpers.userPayload.email;
+const level = helpers.userPayload.role;
+const data_to_encode: JWTType = {
+    email: email, level: level
+}
 
 describe('Test Hompage', () => {
 
@@ -183,12 +190,6 @@ describe('Test Encrypt password', () => {
 describe('Test JWT Token', () => {
     let mockGenToken: any = undefined;
     let mockDecodedToken: any;
-    const email = helpers.userPayload.email;
-    const level = helpers.userPayload.role;
-    const data_to_encode: JWTType = {
-        email: email, level: level
-    }
-    
 
     beforeEach(() => {
         mockGenToken = jest.spyOn(jwt, 'sign').mockImplementation(jest.fn(() => GenTokenEnum.GENERATED_TOKEN))
@@ -364,5 +365,28 @@ describe('Test Categories endpoints', () => {
     test('delete category', async() => {
         await helpers.deleteCategory(1, helpers.categoryPayload)
         .then((data) => expect(data).toEqual(helpers.categoryPayload))
+    });
+});
+
+describe('Test upload image to gallery', () => {
+
+    beforeEach(() => {
+        jest.spyOn(global,'fetch')
+        .mockImplementation(jest.fn(helpers.createImageUploadResponse));
+    });
+
+    afterEach(() => {
+       jest.clearAllMocks();
+       jest.restoreAllMocks();
+    });
+
+    test('uploading images or file', async() => {
+        let formData = new FormData();
+        const file = 'tes to create file from this text'
+        const blob = new Blob([file],{type: 'image/png'});
+        formData.append('filenames', blob, 'tester.png');
+        await helpers.uploadGallery(formData).then(async(data) => {
+            expect(data).toEqual(helpers.successGalleryHttpResponse)
+        });
     });
 })

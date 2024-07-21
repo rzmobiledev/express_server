@@ -164,6 +164,15 @@ export type GalleryType = {
     readonly updatedAt?: Date;
 }
 
+export type GalleryHttpResponseType = {
+    id: number;
+    name: string;
+    userId: number;
+    articleId: number|null;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export type UserLoginType = {
     email: string;
     password: string
@@ -184,4 +193,10 @@ export type MulterResType = {
     size: number;
     userId?: number;
     articleId?: number;
+}
+
+export type PaginationType = {
+    limit: number;
+    page: number;
+    offset: number;
 }
