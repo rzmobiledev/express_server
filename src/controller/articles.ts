@@ -9,10 +9,16 @@ module.exports = {
 
     async getAllArticles(req: Request, res: Response){
         const error = new utils.ErrResHandler(res);
+        let limit = 10;
+        const pagination = new utils.Pagination(limit, req)
 
         try{
 
-            const articles = await Article.findAll();
+            const articles = await Article.findAndCountAll({
+                offset: pagination.getOffset(),
+                limit: pagination.getLimit(),
+                order: [["createdAt", "DESC"]]
+            });
             return res.status(200).json(articles);
 
         }catch(err){
