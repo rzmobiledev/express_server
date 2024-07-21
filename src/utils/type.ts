@@ -141,6 +141,7 @@ export type ArticleMethodGetType = {
     getTags(): TagObject[]
 }
 
+
 export type TagObject = {
     id: number;
     name: string;

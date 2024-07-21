@@ -13,7 +13,7 @@ const userPayload: UserObjNoReadOnlyType = {
     email: String(process.env.USER_EMAIL),
     password: String(process.env.USER_PASSWORD),
     id: 1,
-    role: 2,
+    role: 1,
     active: false,
     createdAt: new Date(),
     updatedAt: new Date(),

@@ -1,6 +1,7 @@
 import { Response, Request } from "express";
 
 import * as utils from '../utils/utils';
+import { JWTType } from "../utils/type";
 const Article = require('../models').Article;
 const Tag = require('../models').Tag;
 const ArticleTag = require('../models').ArticleTag;
@@ -50,19 +51,22 @@ module.exports = {
     async createNewArticle(req: Request, res: Response){
         const error = new utils.ErrResHandler(res);
         const bodyParams = new utils.ArticlesBodyParams(req);
+        const userAccess: JWTType = res.locals?.auth;
 
+        bodyParams.setUserId(userAccess.id!)
+        console.log(bodyParams)
         try{
-            if(!bodyParams.categoryId) return error.get_404_categoryNotFound();
+            if(!bodyParams.getCategoryId()) return error.get_404_categoryNotFound();
 
             const article = await Article.create({
-                userId: Number(bodyParams.userId),
-                categoryId: Number(bodyParams.categoryId),
-                title: bodyParams.title,
-                subtitle: bodyParams.subtitle,  
-                description: bodyParams.description
+                userId: Number(bodyParams.getUserId()),
+                categoryId: Number(bodyParams.getCategoryId()),
+                title: bodyParams.getTitle(),
+                subtitle: bodyParams.getSubtitle(),  
+                description: bodyParams.getDescription()
             });
             
-            await utils.createUpdateArticleTags(bodyParams.tags, article);
+            await utils.createUpdateArticleTags(bodyParams.getTags(), article);
             const result = await Article.findByPk(article.id, {
                 include: [{
                     model: Tag,
@@ -72,8 +76,7 @@ module.exports = {
             
             return res.status(201).json(result)
         }catch(err){
-            // return error.get_globalError(err);
-            return res.status(400).send(err)
+            return error.get_globalError(err);
         }
     },
 
@@ -81,8 +84,9 @@ module.exports = {
         const error = new utils.ErrResHandler(res);
         const bodyParams = new utils.ArticlesBodyParams(req);
         const articleId = req.params.id;
-        
+
         try{
+            if(!bodyParams.getCategoryId()) return error.get_404_categoryNotFound();
             const article = await Article.findByPk(articleId, {
                 include: [{
                     model: Tag,
@@ -91,20 +95,20 @@ module.exports = {
             });
             
             if(!article) return error.get_404_articleNotFound();
-            else if(!bodyParams.categoryId) return error.get_404_categoryNotFound();
-
             const articleTagsObject = JSON.stringify(article?.tags);
             const articleTagsToJson = articleTagsObject ? JSON.parse(articleTagsObject) : [];
             const tagObjectsWithID = utils.assignIdToTagsObject(articleTagsToJson, bodyParams);
             
             await article.update(bodyParams);
-            await utils.createUpdateArticleTags(bodyParams.tags, article);            
+            await utils.createUpdateArticleTags(bodyParams.getTags(), article);            
             
             const response = new utils.ArticlesObjectResponse(req, tagObjectsWithID, articleTagsToJson);
-            return res.status(201).json(response.json())
+            return res.status(200).json(response.json())
 
         }catch(err){
-            return error.get_globalError(err);
+            // return error.get_globalError(err);
+            console.log(err)
+            return res.status(400).send(err)
         }
     },
 

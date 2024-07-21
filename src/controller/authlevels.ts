@@ -1,5 +1,6 @@
 import {Response, Request, request} from 'express';
 import * as utils from '../utils/utils';
+import { JWTType } from '../utils/type';
 
 const AuthLevel = require('../models').Authlevel;
 
@@ -8,8 +9,10 @@ module.exports = {
 
     async getAllLevelsAccess(req: Request, res: Response){
         const error = new utils.ErrResHandler(res);
-        
+        const userAccess: JWTType = res.locals?.auth;
         try{
+            if(!utils.allowAdminAccess(userAccess)) return error.get_401_unAuthorized();
+
             const _level = await AuthLevel
             .findAll({
                 include:[],
@@ -28,8 +31,9 @@ module.exports = {
     async createLevelAccessUser(req: Request, res: Response): Promise<any>{
         const success = new utils.LevelSuccessResHandler(res);
         const error = new utils.ErrResHandler(res);
-
+        const userAccess: JWTType = res.locals?.auth;
         try{
+            if(!utils.allowAdminAccess(userAccess)) return error.get_401_unAuthorized();
             const _level: typeof AuthLevel = await AuthLevel.create(req.body);            
             const levelObj = new utils.AuthLevel(_level);
             return success.get_201_levelResObject(levelObj);
@@ -43,13 +47,13 @@ module.exports = {
         const success = new utils.LevelSuccessResHandler(res);
         const error = new utils.ErrResHandler(res);
         const levelId = req.params.id
-        console.log(req.params);
+        const userAccess: JWTType = res.locals?.auth;
         
         try{
+            if(!utils.allowAdminAccess(userAccess)) return error.get_401_unAuthorized();
             const _level: typeof AuthLevel = await AuthLevel.findByPk(levelId);
-            
             if(!_level) return error.get_404_levelNotFound();
-            return success.get_201_levelResObject(_level);
+            return success.get_200_levelResObject(_level);
 
         } catch(err){
             return error.get_globalError(err);
@@ -62,8 +66,9 @@ module.exports = {
         const levelId = req.params.id
 
         try{
+            const userAccess: JWTType = res.locals?.auth;
+            if(!utils.allowAdminAccess(userAccess)) return error.get_401_unAuthorized();
             const _level: typeof AuthLevel = await AuthLevel.findByPk(levelId);
-            
             if(!_level) return error.get_404_levelNotFound();
             _level.name = req.body.name;
             _level.level = req.body.level;
@@ -79,8 +84,9 @@ module.exports = {
         const success = new utils.LevelSuccessResHandler(res);
         const error = new utils.ErrResHandler(res);
         const levelId = req.params.id;
-
+        const userAccess: JWTType = res.locals?.auth;
         try{
+            if(!utils.allowAdminAccess(userAccess)) return error.get_401_unAuthorized();
             const _level: typeof AuthLevel = await AuthLevel.destroy({
                 where: {id: levelId}
             });

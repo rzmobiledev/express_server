@@ -307,7 +307,7 @@ describe('Test create article and tags', () => {
 
     test('create articles', async() => {
         await helpers.createNewArticle(helpers.articlePayload)
-        // .then((data) => expect(data).toEqual(helpers.articlePayload))
+        .then((data) => expect(data).toEqual(helpers.articlePayload))
     });
 
     test('update articles', async() => {

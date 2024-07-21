@@ -23,6 +23,7 @@ export const ErrorMsgEnum = Object.freeze({
     ARTICLE_NOT_FOUND: "Article not found",
     CATEGORY_NOT_FOUND: "Category not found",
     GALLERY_NOT_FOUND: "Gallery not found",
+    NO_FILE_FOUND: "No files found. At least upload one file.",
     GALLERY_CANTBE_DELETED: "Gallery not found or you are not authorized to delete.",
     EMAIL_ALREADY_REGISTERED: "This email is already registered.",
     ACCESS_DENIED: "Access Denied!",

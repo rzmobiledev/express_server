@@ -236,6 +236,9 @@ export class ErrResHandler implements types.ErrorType{
     get_404_categoryNotFound(): Response {
         return this.res.status(404).json({message: ErrorMsgEnum.CATEGORY_NOT_FOUND});
     }
+    get_404_fileNotFound(): Response {
+        return this.res.status(404).json({message: ErrorMsgEnum.NO_FILE_FOUND});
+    }
     get_404_userNotFound(): Response {
         return this.res.status(404).json({message: ErrorMsgEnum.ID_NOT_FOUND});
     }
@@ -373,22 +376,52 @@ export class Articles implements types.ArticleFieldType, types.ArticleMethodGetT
     }
 }
 
-export class ArticlesBodyParams implements types.ArticleFieldNoIdType {
-    readonly userId: number;
-    readonly categoryId: number;
-    readonly title: string;
-    readonly subtitle: string;
-    readonly description: string;
-    readonly tags: types.TagObject[];
+export class ArticlesBodyParams implements types.ArticleMethodGetType{
+    private id: number;
+    private userId: number;
+    private categoryId: number;
+    private title: string;
+    private subtitle: string;
+    private description: string;
+    private tags: types.TagObject[];
     
     constructor(req: Request){
+        this.id = Number(req.params.id);
         this.userId = req.body.userId;
         this.categoryId = req.body.categoryId;
         this.title = req.body.title;
         this.subtitle = req.body.subtitle;
         this.description = req.body.description;
-        this.tags = req.body.tags;
+        this.tags = req.body.tags ?? [];
     }
+    getId(): number {
+        return this.id;
+    }
+    getCategoryId(): number {
+        return this.categoryId;
+    }
+    getUserId(): number {
+        return this.userId
+    }
+    getTitle(): string {
+        return this.title;
+    }
+    getSubtitle(): string {
+        return this.subtitle;
+    }
+    getDescription(): string {
+        return this.description;
+    }
+    getTags(): types.TagObject[] {
+        return this.tags;
+    }
+    setUserId(id: number){
+        this.userId = id;
+    }
+    setCategoryId(id: number){
+        this.categoryId = id;
+    }
+    
 }
 
 export class ArticlesObjectResponse{
@@ -455,17 +488,17 @@ export async function createUpdateArticleTags(tagObject: types.TagObject[], arti
         }
 }
 
-export function assignIdToTagsObject(articleTags: types.TagObject[], payload: types.ArticleFieldNoIdNoRoType): 
+export function assignIdToTagsObject(articleTags: types.TagObject[], payload: types.ArticleMethodGetType): 
 types.TagObject[]{
 
     const tagObjects = new Array();
-    const isTagExist = payload.tags.length > 0;
+    const isTagExist = payload.getTags().length > 0;
 
     if(isTagExist){
-        for(let i=0; i < payload.tags.length; i++){
+        for(let i=0; i < payload.getTags().length; i++){
             const new_articleTags = new ArticleTags(
                 articleTags[i]?.id ?? undefined, 
-                payload.tags[i].name,
+                payload.getTags()[i].name,
                 articleTags[i]?.createdAt ?? new Date,
                 articleTags[i]?.updatedAt ?? new Date
             );
@@ -581,7 +614,7 @@ export async function isGalleryExistAndDeleted(user: types.JWTType, galleryID: n
     const galleries: types.GalleryType[] = await Gallery.findAll(
         {where: {id: galleryID, userId: user.id}}
     );
-    if(galleries){
+    if(galleries.length){
         await Gallery.destroy({where: {id: galleryID}});
         await deleteImages(galleries);
         return true;

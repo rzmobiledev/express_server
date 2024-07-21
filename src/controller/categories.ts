@@ -3,6 +3,7 @@ import * as utils from '../utils/utils';
 
 const Category = require('../models').Category;
 import { SuccessMsgEnum } from '../utils/enum';
+import { JWTType } from '../utils/type';
 
 module.exports = {
 
@@ -16,7 +17,7 @@ module.exports = {
                     ['createdAt', 'DESC']
                 ]
             });
-            return res.status(201).json(category);
+            return res.status(200).json(category);
 
         }catch(err){
             return error.get_globalError(err);
@@ -26,10 +27,10 @@ module.exports = {
     async createCategory(req: Request, res: Response){
         const error = new utils.ErrResHandler(res);
         const categName = req.body.name;
-
+        const userAccess: JWTType = res.locals?.auth;
         try{
+            if(!utils.allowAdminAccess(userAccess)) return error.get_401_unAuthorized();
             if(!categName) return error.get_400_fieldNotEmpty();
-
             const category = await Category.create({
                 name: categName
             })
@@ -60,8 +61,9 @@ module.exports = {
         const error = new utils.ErrResHandler(res);
         const categId = req.params.id;
         const categName = req.body.name;
-
+        const userAccess: JWTType = res.locals?.auth;
         try{
+            if(!utils.allowAdminAccess(userAccess)) return error.get_401_unAuthorized();
             const category = await Category.findByPk(categId);
             if(!category) return error.get_404_categoryNotFound();
 
@@ -76,8 +78,9 @@ module.exports = {
     async deleteCategory(req: Request, res: Response){
         const error = new utils.ErrResHandler(res);
         const categId = req.params.id;
+        const userAccess: JWTType = res.locals?.auth;
         try{
-
+            if(!utils.allowAdminAccess(userAccess)) return error.get_401_unAuthorized();
             const category = await Category.destroy({
                 where: {id: categId}
             });
