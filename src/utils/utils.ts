@@ -588,3 +588,29 @@ export async function isGalleryExistAndDeleted(user: types.JWTType, galleryID: n
     }
     return false;
 }
+
+export class Pagination{
+    private limit: number;
+    private page: number;
+    private offset: number;
+
+    constructor(limit: number, page: number){
+        this.limit = limit;
+        this.page = page;
+        this.offset = this.setOffset()
+    }
+
+    private setOffset(){
+        return 0 + (this.page -1) * this.limit;
+    }
+
+    getLimit(){
+        return this.limit
+    }
+    getPage(){
+        return this.page;
+    }
+    getOffset(){
+        return this.offset;
+    }
+}

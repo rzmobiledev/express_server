@@ -194,3 +194,9 @@ export type MulterResType = {
     userId?: number;
     articleId?: number;
 }
+
+export type PaginationType = {
+    limit: number;
+    page: number;
+    offset: number;
+}
