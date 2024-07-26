@@ -1,5 +1,6 @@
 const fs = require('fs');
 const { mkdir, unlink } = require('node:fs/promises');
+import Redis from 'ioredis';
 const path = require('path');
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
@@ -11,7 +12,7 @@ import * as types from './type';
 
 dotenv.config();
 
-
+const redis = new Redis();
 const User = require("../models").User;
 const Level = require("../models").AuthLevel;
 const Article = require('../models').Article;
@@ -650,4 +651,18 @@ export class Pagination{
     getOffset(){
         return this.offset;
     }
+}
+
+export async function cacheAllArticlesMiddleware(req: Request, res: Response, next: NextFunction){
+    const articlePage = req.query?.page ?? 1;
+    const cachedData = await redis.get(`articles?page=${articlePage}`);
+    if(cachedData) res.status(200).json(JSON.parse(cachedData));
+    else next();
+}
+
+export async function cacheOneArticleMiddleware(req: Request, res: Response, next: NextFunction){
+    const articleID = req.params?.id;
+    const cachedData = await redis.get(`articles/${articleID}`)
+    if(cachedData) res.status(200).json(JSON.parse(cachedData));
+    else next()
 }

@@ -1,10 +1,11 @@
 import { Response, Request } from "express";
-
+import Redis from 'ioredis';
 import * as utils from '../utils/utils';
 import { JWTType } from "../utils/type";
 const Article = require('../models').Article;
 const Tag = require('../models').Tag;
 const ArticleTag = require('../models').ArticleTag;
+const redis = new Redis();
 
 module.exports = {
 
@@ -12,16 +13,14 @@ module.exports = {
         const error = new utils.ErrResHandler(res);
         let limit = 10;
         const pagination = new utils.Pagination(limit, req)
-
         try{
-
             const articles = await Article.findAndCountAll({
                 offset: pagination.getOffset(),
                 limit: pagination.getLimit(),
                 order: [["createdAt", "DESC"]]
             });
+            await redis.set(`articles?page=${pagination.getPage()}`, JSON.stringify(articles), 'EX', 3600); 
             return res.status(200).json(articles);
-
         }catch(err){
             return error.get_globalError(err)
         }
@@ -30,9 +29,8 @@ module.exports = {
     async getOneArticle(req: Request, res: Response){
         const error = new utils.ErrResHandler(res);
         const articleId = req.params.id;
-
+        
         try{
-
             const article = await Article.findByPk(articleId, {
                 include: [{
                     model: Tag,
@@ -41,6 +39,7 @@ module.exports = {
             });
             
             if(!article) return error.get_404_articleNotFound();
+            await redis.set(`articles/${articleId}`, JSON.stringify(article), 'EX', 3600); 
             return res.status(200).json(article);
 
         }catch(err){
@@ -54,7 +53,7 @@ module.exports = {
         const userAccess: JWTType = res.locals?.auth;
 
         bodyParams.setUserId(userAccess.id!)
-        console.log(bodyParams)
+        
         try{
             if(!bodyParams.getCategoryId()) return error.get_404_categoryNotFound();
 
@@ -73,7 +72,6 @@ module.exports = {
                     as: 'tags'
                 }]
             });
-            
             return res.status(201).json(result)
         }catch(err){
             return error.get_globalError(err);
@@ -103,12 +101,11 @@ module.exports = {
             await utils.createUpdateArticleTags(bodyParams.getTags(), article);            
             
             const response = new utils.ArticlesObjectResponse(req, tagObjectsWithID, articleTagsToJson);
+            redis.del(`articles/${articleId}`);
             return res.status(200).json(response.json())
 
         }catch(err){
-            // return error.get_globalError(err);
-            console.log(err)
-            return res.status(400).send(err)
+            return error.get_globalError(err);
         }
     },
 
@@ -127,7 +124,7 @@ module.exports = {
             await Article.destroy({
                 where: {id: articleId}
             });
-
+            redis.del(`articles/${articleId}`);
              return success.get_200_articleDeleted();
             
         }catch(err){

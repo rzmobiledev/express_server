@@ -1,6 +1,5 @@
 import express from 'express';
-import { verifyJWTToken } from '../utils/utils';
-
+import { verifyJWTToken, cacheAllArticlesMiddleware, cacheOneArticleMiddleware } from '../utils/utils';
 const UserRoutes = require('./users');
 const LevelRoutes = require('./authlevels');
 const Articles = require('./articles');
@@ -33,8 +32,8 @@ router.delete('/levelauth/:id', verifyJWTToken, LevelRoutes.removeLevelAccess);
 
 router.post('/article', verifyJWTToken, Articles.createNewArticle);
 router.put('/article/:id', verifyJWTToken, Articles.updateArticle);
-router.get('/article', Articles.getAllArticles);
-router.get('/article/:id', Articles.getOneArticle);
+router.get('/article', cacheAllArticlesMiddleware, Articles.getAllArticles);
+router.get('/article/:id', cacheOneArticleMiddleware, Articles.getOneArticle);
 router.delete('/article/:id', verifyJWTToken, Articles.deleteArticle);
 
 router.post('/category', verifyJWTToken, Categories.createCategory);
