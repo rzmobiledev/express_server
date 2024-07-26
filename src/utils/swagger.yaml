@@ -249,6 +249,42 @@ paths:
       security:
         - api_key: []
 
+  /users/assignlevel/{id}:
+    put:
+      tags:
+        - 'User'
+      summary: 'Assign user role'
+      description: 'Only for Superadmin level. This endpoint is for assigning a user for particular access level.'
+      operationId: 'assignRoleUser'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'Initial user id'
+          required: true
+        - in: 'body'
+          name: 'body'
+          description: 'User level that needs to assign'
+          required: true
+          schema:
+            $ref: '#/definitions/Level'
+      responses:
+        '200':
+          description: 'User updated'
+        '400':
+          description: 'Unknown errors'
+        '404':
+          description: 'User not found'
+        '403':
+          description: 'Access Denied!'
+      security:
+        - api_key: []
+
   /users/{id}/password:
     put:
       tags:
@@ -321,8 +357,8 @@ paths:
     post:
       tags:
         - 'Levelauth'
-      summary: 'Add a new Levelauth to database'
-      description: 'Level access user in the app. Only superuser or admin has full access to this endpoint.'
+      summary: 'Add a new role to database'
+      description: 'Role user access in the app. Only superuser or admin has full access to this endpoint.'
       operationId: 'addLevelauth'
       consumes:
         - 'application/json'
@@ -1022,3 +1058,12 @@ definitions:
       name:
         type: 'string'
         description: 'Image name'
+
+  Level:
+    type: 'object'
+    required:
+      - 'role'
+    properties:
+      role:
+        type: 'integer'
+        format: 'int64'

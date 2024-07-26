@@ -252,6 +252,9 @@ export class ErrResHandler implements types.ErrorType{
     get_400_fieldNotEmpty(): Response {
         return this.res.status(400).send({message: ErrorMsgEnum.FIELD_SHOULDNOT_EMPTY});
     }
+    get_400_roleNotAvailable(): Response {
+        return this.res.status(400).send({message: ErrorMsgEnum.ROLE_UNAVAILABLE});
+    }
     get_401_emailExist(): Response {
         return this.res.status(401).send({message: ErrorMsgEnum.EMAIL_ALREADY_REGISTERED});
     }
@@ -260,6 +263,9 @@ export class ErrResHandler implements types.ErrorType{
     }
     get_401_unAuthorized(): Response {
         return this.res.status(401).send({message: ErrorMsgEnum.UNAUTHORIZED});
+    }
+    get_401_onlySuperUser(): Response {
+        return this.res.status(401).send({message: ErrorMsgEnum.SUPERUSER_ONLY});
     }
     get_401_galleryCantBeDeleted(): Response {
         return this.res.status(401).send({message: ErrorMsgEnum.GALLERY_CANTBE_DELETED});
@@ -592,6 +598,23 @@ export function allowAdminAccess(userAccess: types.JWTType): boolean{
     return false;
 }
 
+export function allowSuperAdminAccess(userAccess: types.JWTType): boolean{
+    if(userAccess.level === UserLevelEnum.SUPERADMIN) return true;
+    else return false;
+}
+
+export function isAssignUserAccessAllowed(req: Request, userAccess: types.JWTType, user: typeof User): boolean {
+    const { role } = req.body;
+    let allowed: boolean = true
+
+    if(role === UserLevelEnum.SUPERADMIN && userAccess.level === UserLevelEnum.ADMIN){
+        allowed = false;
+    }
+    if(user.role === UserLevelEnum.SUPERADMIN && userAccess.level === UserLevelEnum.ADMIN){
+        allowed = false;
+    }
+    return allowed;
+}
 
 export async function deleteImages(imageName: types.GalleryType[]){
     const folderPath = 'public/uploads/'

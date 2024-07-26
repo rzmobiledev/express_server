@@ -37,6 +37,8 @@ export const ErrorMsgEnum = Object.freeze({
     COMPARING_PASSWDERROR: 'Error comparing password.',
     PASSWORD_NOT_MATCH: 'Password does not match',
     UNAUTHORIZED: 'You are unauthorized!',
+    SUPERUSER_ONLY: 'You cannot update Superuser role.',
+    ROLE_UNAVAILABLE: 'Role level is not available. Choose other roles.'
 
 });
 

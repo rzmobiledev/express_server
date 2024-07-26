@@ -21,6 +21,7 @@ router.get('/users/:id', verifyJWTToken, UserRoutes.getUser);
 router.post('/users', verifyJWTToken, UserRoutes.addUser);
 router.put('/users/:id', verifyJWTToken, UserRoutes.changeUserProfile);
 router.put('/users/:id/password', verifyJWTToken, UserRoutes.changePassword);
+router.put('/users/assignlevel/:id', verifyJWTToken, UserRoutes.assignUserLevel);
 router.delete('/users/:id', verifyJWTToken, UserRoutes.softDeleteUser);
 router.delete('/users/user/:id', verifyJWTToken, UserRoutes.hardDeleteUser);
 

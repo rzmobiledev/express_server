@@ -77,6 +77,33 @@ module.exports = {
         }
     },
 
+    async assignUserLevel(req: Request, res: Response){
+        const userId = req.params.id
+        const error = new utils.ErrResHandler(res)
+        const userAccess: JWTType = res.locals?.auth;
+        const user_success = new utils.UserSuccessResHandler(res)
+        const { role } = req.body
+
+        try{
+            if(!utils.allowAdminAccess(userAccess)) return error.get_401_unAuthorized();
+            if(Number(role) > Number(UserLevelEnum.OPERATOR)) return error.get_400_roleNotAvailable();
+
+            const user = await User.findByPk(userId);
+            if(!user) return error.get_404_userNotFound();
+
+            const isAllowed = utils.isAssignUserAccessAllowed(req, userAccess, user);
+            if(!isAllowed) return error.get_401_onlySuperUser();
+            user.role = role;
+            user.save();
+            return user_success.get_200_userResObject(user);
+            
+
+        }catch(err){
+            console.log(err)
+            return error.get_globalError(err);
+        }
+    },
+
     async addUser(req: Request, res: Response): Promise<any>{
         const userParams = new utils.UserBodyParams(req);
         const error = new utils.ErrResHandler(res);
@@ -94,6 +121,7 @@ module.exports = {
             return error.get_400_fieldNotEmpty();
         }
         
+        if(Number(userParams.getRole()) > Number(UserLevelEnum.OPERATOR)) return error.get_400_roleNotAvailable()
         const userExists = await utils.checkEmailifExists(userParams.getEmail());        
 
         if(userExists){
@@ -134,6 +162,7 @@ module.exports = {
         }
         
         try{
+            if(Number(userParams.getRole()) > Number(UserLevelEnum.OPERATOR)) return error.get_400_roleNotAvailable();
             const _user: typeof User = await User.findByPk(user_id);
             if(!_user) return error.get_404_userNotFound();
 
@@ -186,9 +215,19 @@ module.exports = {
         const userAccess: JWTType = res.locals?.auth;
         
         try{
-            if(utils.allowAdminAccess(userAccess)) {
+
+            if(utils.allowSuperAdminAccess(userAccess)) {
                 const userExists = await User.destroy({
                     where: {id: userId}
+                });
+
+                if(!userExists) return error.get_404_userNotFound();
+                return success.get_200_userDeleted();
+            }
+
+            if(utils.allowAdminAccess(userAccess)) {
+                const userExists = await User.destroy({
+                    where: {id: userId, role: { [Op.ne]: UserLevelEnum.SUPERADMIN }}
                 });
 
                 if(!userExists) return error.get_404_userNotFound();
@@ -216,9 +255,19 @@ module.exports = {
         const userAccess: JWTType = res.locals?.auth;
         
         try{
-            if(utils.allowAdminAccess(userAccess)) {
+            if(utils.allowSuperAdminAccess(userAccess)){
                 const userExists = await User.destroy({
                     where: {id: userId},
+                    force: true,
+                });
+                
+                if(!userExists) return error.get_404_userNotFound();
+                return success.get_200_userDeleted();
+            }
+
+            if(utils.allowAdminAccess(userAccess)) {
+                const userExists = await User.destroy({
+                    where: {id: userId, role: { [Op.ne]: UserLevelEnum.SUPERADMIN }},
                     force: true,
                 });
                 
