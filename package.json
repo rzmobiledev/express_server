@@ -8,7 +8,10 @@
     "test": "jest --detectOpenHandles",
     "up-db": "npx sequelize-cli db:migrate",
     "down-db": "npx sequelize-cli db:migrate:undo",
-    "build": "tsc"
+    "build": "tsc",
+    "check_db": "node dist/utils/checkdDbConnection.js",
+    "create_user": "node dist/utils/createLevelUser.js",
+    "start": "node dist/main.js"
   },
   "author": "Rizal Safril",
   "license": "ISC",

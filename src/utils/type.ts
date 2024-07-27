@@ -79,8 +79,8 @@ export type ErrorType = {
 export type UserSuccessType = {
     get_200_userDeleted(): Response;
     get_200_userResObject(userObject: UserObjNoPasswordType): Response;
+    get_200_passwordUpdated(): Response;
     get_201_userResObject(userObject: UserObjNoPasswordType): Response;
-    get_201_passwordUpdated(): Response;
 }
 
 export type ArticleSuccessType = {

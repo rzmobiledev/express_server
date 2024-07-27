@@ -1,11 +1,10 @@
 import { Response, Request } from "express";
-import Redis from 'ioredis';
 import * as utils from '../utils/utils';
 import { JWTType } from "../utils/type";
 const Article = require('../models').Article;
 const Tag = require('../models').Tag;
 const ArticleTag = require('../models').ArticleTag;
-const redis = new Redis();
+
 
 module.exports = {
 
@@ -19,7 +18,7 @@ module.exports = {
                 limit: pagination.getLimit(),
                 order: [["createdAt", "DESC"]]
             });
-            await redis.set(`articles?page=${pagination.getPage()}`, JSON.stringify(articles), 'EX', 3600); 
+            await utils.redis.set(`articles?page=${pagination.getPage()}`, JSON.stringify(articles), 'EX', 3600); 
             return res.status(200).json(articles);
         }catch(err){
             return error.get_globalError(err)
@@ -39,7 +38,7 @@ module.exports = {
             });
             
             if(!article) return error.get_404_articleNotFound();
-            await redis.set(`articles/${articleId}`, JSON.stringify(article), 'EX', 3600); 
+            await utils.redis.set(`articles/${articleId}`, JSON.stringify(article), 'EX', 3600); 
             return res.status(200).json(article);
 
         }catch(err){
@@ -101,7 +100,7 @@ module.exports = {
             await utils.createUpdateArticleTags(bodyParams.getTags(), article);            
             
             const response = new utils.ArticlesObjectResponse(req, tagObjectsWithID, articleTagsToJson);
-            redis.del(`articles/${articleId}`);
+            utils.redis.del(`articles/${articleId}`);
             return res.status(200).json(response.json())
 
         }catch(err){
@@ -124,7 +123,7 @@ module.exports = {
             await Article.destroy({
                 where: {id: articleId}
             });
-            redis.del(`articles/${articleId}`);
+            utils.redis.del(`articles/${articleId}`);
              return success.get_200_articleDeleted();
             
         }catch(err){

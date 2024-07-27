@@ -7,7 +7,7 @@ dotenv.config()
 
 const app: Express = express();
 const hostname: string = String(process.env.HOST) || 'localhost';
-const port: number = Number(process.env.PORT) || 8080;
+const port: number = Number(process.env.HOST_PORT) || 8080;
 
 app.use(bodyParser.json());
 

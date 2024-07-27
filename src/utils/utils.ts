@@ -1,6 +1,6 @@
 const fs = require('fs');
-const { mkdir, unlink } = require('node:fs/promises');
 import Redis from 'ioredis';
+const { mkdir, unlink } = require('node:fs/promises');
 const path = require('path');
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
@@ -12,7 +12,11 @@ import * as types from './type';
 
 dotenv.config();
 
-const redis = new Redis();
+export const redis = new Redis({
+    port: Number(process.env.REDIS_PORT),
+    host: process.env.REDIS_HOST
+})
+
 const User = require("../models").User;
 const Level = require("../models").AuthLevel;
 const Article = require('../models').Article;
@@ -289,12 +293,13 @@ export class UserSuccessResHandler implements types.UserSuccessType {
     get_200_userResObject(userObject: UserResponseObject): Response {
         return this.res.status(201).json(userObject);
     }
+    get_200_passwordUpdated(): Response {
+        return this.res.status(200).json({message: SuccessMsgEnum.PASSWORD_UPDATED})
+    }
     get_201_userResObject(userObject: UserResponseObject): Response {
         return this.res.status(201).json(userObject)
     }
-    get_201_passwordUpdated(): Response {
-        return this.res.status(201).json({message: SuccessMsgEnum.PASSWORD_UPDATED})
-    } 
+     
 }
 
 export class ArticleSuccessResHandler implements types.ArticleSuccessType {

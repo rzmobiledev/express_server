@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Op } from '@sequelize/core';
+const { Op } = require('sequelize');
 import * as utils from '../utils/utils';
 import { JWTType } from '../utils/type';
 import { UserLevelEnum } from '../utils/enum';
@@ -200,7 +200,7 @@ module.exports = {
             _user.password = hashed_password;
             _user.save();
 
-            return success.get_201_passwordUpdated();
+            return success.get_200_passwordUpdated();
             
         } catch(err){
             return error.get_globalError(err);
@@ -220,27 +220,26 @@ module.exports = {
                 const userExists = await User.destroy({
                     where: {id: userId}
                 });
-
                 if(!userExists) return error.get_404_userNotFound();
                 return success.get_200_userDeleted();
             }
 
-            if(utils.allowAdminAccess(userAccess)) {
+            else if(utils.allowAdminAccess(userAccess)) {
                 const userExists = await User.destroy({
                     where: {id: userId, role: { [Op.ne]: UserLevelEnum.SUPERADMIN }}
                 });
-
                 if(!userExists) return error.get_404_userNotFound();
                 return success.get_200_userDeleted();
             }
-
+            
             if(userAccess.id !== userId) return error.get_401_unAuthorized();
-
-            await User.destroy({
+            const userExists = await User.destroy({
                 where: {id: userId}
             });
+            if(!userExists) return error.get_404_userNotFound();
             return success.get_200_userDeleted();
-
+            
+           
 
         }catch(err){
             return error.get_globalError(err);

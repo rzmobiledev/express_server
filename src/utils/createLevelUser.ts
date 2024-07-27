@@ -39,22 +39,29 @@ async function createLEvel(){
 async function createUser(){
 
     try{
-        await AuthLevel.bulkCreate(UserLevel);
-
-        const _user: typeof User = await User.create(userPayload);
-        const hashed_password = await utils.encryptUserPassword(userPayload.password);
+        const roleLevel = await AuthLevel.findAll();
+        if(!roleLevel) await AuthLevel.bulkCreate(UserLevel);
         
-        _user.password = hashed_password;
-        _user.role = userPayload.role;
-        _user.active = userPayload.active;
-        _user.save();
-            
-        return console.log('User and level created sucessfuly!');
+        const userExist: typeof User = await User.findAll({where: { id: userPayload.id, email: userPayload.email }})
+        if(!userExist){
+            const _user: typeof User = await User.create(userPayload);
+            const hashed_password = await utils.encryptUserPassword(userPayload.password);
+            _user.password = hashed_password;
+            _user.role = userPayload.role;
+            _user.active = userPayload.active;
+            _user.save();
+                
+            console.log('User and level created sucessfuly!');
+        }
+        
+       else{
+         console.log('User and Role are already in database. Skip creating new one.');
+       }
 
     }catch(err){
         console.log(err)
     }
 }
 
-
 createUser();
+process.exit();

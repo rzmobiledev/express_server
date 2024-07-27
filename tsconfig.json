@@ -14,8 +14,8 @@
         ],
     },
     "include": [
-        "src/**/**.ts",
-        "src/config/config.ts",
+        "src/**/*",
+        "src/utils/swagger.yaml",
     ],
     "exclude": [
         "node_modules",
