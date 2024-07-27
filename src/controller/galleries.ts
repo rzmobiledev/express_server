@@ -34,19 +34,9 @@ module.exports = {
 
     async showGalleryByID(req: Request, res: Response){
         const error = new ErrResHandler(res);
-        const userAccess: JWTType = res.locals?.auth;
         const galleryId = Number(req.params.id);
 
         try{
-            if(!allowAdminAccess(userAccess)){
-                const gallery = await Gallery.findOne({
-                    where: {id: galleryId, userId: userAccess.id}
-                });
-
-                if(!gallery) return error.get_404_galleryNotFound();
-                return res.status(200).json(gallery);
-            }
-            
             const _gallery = await Gallery.findOne({ where: {id: galleryId} });
             if(!_gallery) return error.get_404_galleryNotFound();
             return res.status(200).json(_gallery);
@@ -60,15 +50,17 @@ module.exports = {
         const error = new ErrResHandler(res);
         const userAccess: JWTType = res.locals?.auth;
         try{
-
+            
             uploadFile.array('filenames')(req, res, async (err) => {
-                console.log(userAccess)
+                const isImageExists = Boolean(req.files?.length);
+                if(!isImageExists) return error.get_404_fileNotFound();
+
                 if(err) return error.get_globalError(err);
                 const imageWithUserID: MulterResType[] = mapImageWithUserId(req, userAccess); 
                
                 await Gallery.bulkCreate(imageWithUserID)
                 .then((data: typeof Gallery) => {
-                    return res.status(200).json(data)
+                    return res.status(201).json(data)
                 })
                 .catch(async (err: Error) => {
                     await deleteFiles(imageWithUserID);
@@ -110,7 +102,7 @@ module.exports = {
 
         try{            
             if(!allowAdminAccess(userAccess)){
-                const is_GalExistAndDeleted = await isGalleryExistAndDeleted(userAccess, galleryId)
+                const is_GalExistAndDeleted = await isGalleryExistAndDeleted(userAccess, galleryId);
                 if(is_GalExistAndDeleted) return res.status(200).json({message: SuccessMsgEnum.GALLERY_DELETED});
                 return error.get_401_galleryCantBeDeleted();
             }

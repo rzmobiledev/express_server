@@ -1,0 +1,1069 @@
+swagger: '2.0'
+info:
+  description: 'Endpoint Swagger of RzBlog'
+  version: '1.0.0'
+  title: 'Swagger RzBlog 2.0'
+  termsOfService: 'http://127.0.0.1:5000/api'
+  contact:
+    email: 'rzmobiledev@gmail.com'
+  license:
+    name: 'Apache 2.0'
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+host: '127.0.0.1:5000'
+basePath: '/api'
+tags:
+  - name: 'Article'
+    description: 'All CRUD Article'
+    externalDocs:
+      description: 'Find out more'
+      url: '/api/article'
+  - name: 'Levelauth'
+    description: 'Access to user level auth'
+  - name: 'User'
+    description: 'User CRUD Endpoints'
+    externalDocs:
+      description: 'Find out more about user level'
+      url: '/api/users'
+  - name: 'Category'
+    description: 'Category Endpoints'
+    externalDocs:
+      description: 'Find out more about Category:'
+      url: '/api/category'
+  - name: 'Gallery'
+    description: 'Gallery Endpoints'
+    externalDocs:
+      description: 'Find out more about gallery'
+      url: '/api/gallery'
+
+schemes:
+  - 'http'
+  - 'https'
+
+securityDefinitions:
+  api_key:
+    type: 'apiKey'
+    name: 'Authorization'
+    in: 'header'
+
+paths:
+  /users:
+    post:
+      tags:
+        - 'User'
+      summary: 'Add a new user to database'
+      description: 'User auth credential is required.'
+      operationId: 'addUser'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - in: 'body'
+          name: 'body'
+          description: 'User object that needs to be added to the database'
+          required: true
+          schema:
+            $ref: '#/definitions/User'
+      responses:
+        '201':
+          description: 'Ok'
+          schema:
+            $ref: '#/definitions/User'
+        '400':
+          description: 'Unknown errors'
+        '401':
+          description: 'Email exists.'
+      security:
+        - api_key: []
+    get:
+      tags:
+        - 'User'
+      summary: 'List all users in database'
+      description: 'Only superuser or admin can perform this action'
+      operationId: 'listAllUser'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      responses:
+        '200':
+          description: 'OK'
+          schema:
+            type: 'array'
+            items:
+              $ref: '#/definitions/User'
+        '400':
+          description: 'Unknown errors'
+        '401':
+          description: 'Unauthorized'
+      security:
+        - api_key: []
+
+  /users/all:
+    get:
+      tags:
+        - 'User'
+      summary: 'List all active and softdeleted users in database'
+      description: 'Only superuser or admin can perform this action'
+      operationId: 'listSoftDeletedUser'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      responses:
+        '200':
+          description: 'OK'
+          schema:
+            type: 'array'
+            items:
+              $ref: '#/definitions/User'
+        '400':
+          description: 'Unknown errors'
+        '401':
+          description: 'Access denied'
+      security:
+        - api_key: []
+
+  /users/login:
+    post:
+      tags:
+        - 'User'
+      summary: 'Gain Token to get your credentials'
+      description: 'Registered user only'
+      operationId: 'login'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - in: 'body'
+          name: 'body'
+          description: 'Fields required to login'
+          required: true
+          schema:
+            $ref: '#/definitions/Login'
+      responses:
+        '200':
+          description: 'OK'
+          schema:
+            $ref: '#/definitions/User'
+        '400':
+          description: 'Expired Token'
+
+  /users/{id}:
+    put:
+      tags:
+        - 'User'
+      summary: 'Change user profile'
+      description: ''
+      operationId: 'updateUser'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'Initial user id'
+        - in: 'body'
+          name: 'body'
+          description: 'User object that needs to be updated'
+          required: true
+          schema:
+            $ref: '#/definitions/User'
+      responses:
+        '200':
+          description: 'User created'
+        '400':
+          description: 'Unknown errors'
+        '403':
+          description: 'Access Denied!'
+        '404':
+          description: 'User not found'
+      security:
+        - api_key: []
+    get:
+      tags:
+        - 'User'
+      summary: 'List user based on user id'
+      description: 'For Authenticated user'
+      operationId: 'getOneUser'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'Initial user id'
+      responses:
+        '200':
+          description: 'OK'
+          schema:
+            $ref: '#/definitions/User'
+        '400':
+          description: 'Unknown errors'
+        '404':
+          description: 'User not found'
+      security:
+        - api_key: []
+    delete:
+      tags:
+        - 'User'
+      summary: 'Soft Delete user'
+      description: 'This can only be done by the logged in user. Only soft deletion. User is inactive but available in database'
+      operationId: 'deleteUser'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'Initial user id'
+          required: true
+          type: 'integer'
+      responses:
+        '200':
+          description: 'User deleted'
+        '400':
+          description: 'Unknown errors'
+        '404':
+          description: 'User not found'
+        '403':
+          description: 'Access Denied!'
+      security:
+        - api_key: []
+
+  /users/assignlevel/{id}:
+    put:
+      tags:
+        - 'User'
+      summary: 'Assign user role'
+      description: 'Only for Superadmin level. This endpoint is for assigning a user for particular access level.'
+      operationId: 'assignRoleUser'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'Initial user id'
+          required: true
+        - in: 'body'
+          name: 'body'
+          description: 'User level that needs to assign'
+          required: true
+          schema:
+            $ref: '#/definitions/Level'
+      responses:
+        '200':
+          description: 'User updated'
+        '400':
+          description: 'Unknown errors'
+        '404':
+          description: 'User not found'
+        '403':
+          description: 'Access Denied!'
+      security:
+        - api_key: []
+
+  /users/{id}/password:
+    put:
+      tags:
+        - 'User'
+      summary: 'Change user password'
+      description: ''
+      operationId: 'updateUserPassword'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'Initial user id'
+        - name: 'password'
+          in: 'body'
+          description: 'Change user password'
+          required: true
+          schema:
+            $ref: '#/definitions/Password'
+      responses:
+        '200':
+          description: 'Password changed'
+          schema:
+            $ref: '#/definitions/Password'
+        '400':
+          description: 'Unknown errors'
+        '404':
+          description: 'User not found'
+        '403':
+          description: 'Access Denied!'
+      security:
+        - api_key: []
+
+  /users/user/{id}:
+    delete:
+      tags:
+        - 'User'
+      summary: 'Hard Delete user'
+      description: 'Logged in user has access to delete himself and superadmin or admin can delete all users. This operation will delete completely from database'
+      operationId: 'hardDeleteUser'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/xml'
+        - 'application/json'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'Initial user id'
+          required: true
+          type: 'integer'
+      responses:
+        '200':
+          description: 'User deleted'
+        '400':
+          description: 'Unknown errors'
+        '404':
+          description: 'User not found'
+        '403':
+          description: 'Access Denied!'
+      security:
+        - api_key: []
+
+  /levelauth:
+    post:
+      tags:
+        - 'Levelauth'
+      summary: 'Add a new role to database'
+      description: 'Role user access in the app. Only superuser or admin has full access to this endpoint.'
+      operationId: 'addLevelauth'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - in: 'body'
+          name: 'body'
+          description: 'Levelauth object as payload'
+          required: true
+          schema:
+            $ref: '#/definitions/Levelauth'
+      responses:
+        '201':
+          description: 'Level created'
+          schema:
+            $ref: '#/definitions/Levelauth'
+        '400':
+          description: 'Unknown errors.'
+        '401':
+          description: 'Unauthorized'
+      security:
+        - api_key: []
+    get:
+      tags:
+        - 'Levelauth'
+      summary: 'retrieve all Levels from database'
+      description: 'Only superuser or admin has full access to this endpoint.'
+      operationId: 'listLevelauth'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      responses:
+        '200':
+          description: 'OK'
+          schema:
+            type: 'array'
+            items:
+              $ref: '#/definitions/Levelauth'
+        '400':
+          description: 'Bad Request'
+      security:
+        - api_key: []
+
+  /levelauth/{id}:
+    put:
+      tags:
+        - 'Levelauth'
+      summary: 'Edit user level access.'
+      description: 'Only superuser or admin has full access to this endpoint.'
+      operationId: 'addLevelauth'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'Level id'
+          required: true
+          type: 'integer'
+        - in: 'body'
+          name: 'body'
+          description: 'Levelauth object as payload'
+          required: true
+          schema:
+            $ref: '#/definitions/Levelauth'
+      responses:
+        '201':
+          description: 'Level created'
+          schema:
+            $ref: '#/definitions/Levelauth'
+        '400':
+          description: 'Unknown errors.'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Level not found.'
+      security:
+        - api_key: []
+    get:
+      tags:
+        - 'Levelauth'
+      summary: 'retrieve Level based on id'
+      description: 'Only superuser or admin has full access to this endpoint.'
+      operationId: 'listOneLevelauth'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'Level id'
+          required: true
+          type: 'integer'
+      responses:
+        '200':
+          description: 'OK'
+          schema:
+            $ref: '#/definitions/Levelauth'
+        '400':
+          description: 'Bad Request'
+        '401':
+          description: 'Unauthorized'
+      security:
+        - api_key: []
+    delete:
+      tags:
+        - 'Levelauth'
+      summary: 'delete Level based on id from database'
+      description: 'Only superuser or admin can perform this action'
+      operationId: 'deleteLevelauth'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'Level id'
+          required: true
+          type: 'integer'
+      responses:
+        '200':
+          description: 'Level deleted'
+        '400':
+          description: 'Unknown errors.'
+        '401':
+          description: 'Unauthorized'
+      security:
+        - api_key: []
+
+  /article:
+    post:
+      tags:
+        - 'Article'
+      summary: 'Add a new article to database'
+      description: 'Only for authenticated users.'
+      operationId: 'addArticle'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - in: 'body'
+          name: 'body'
+          description: 'Article object payload that needs to be added to the database'
+          required: true
+          schema:
+            $ref: '#/definitions/Article'
+      responses:
+        '201':
+          description: 'Ok'
+          schema:
+            $ref: '#/definitions/Article'
+        '400':
+          description: 'Unknown errors'
+        '401':
+          description: Validation exception
+      security:
+        - api_key: []
+    get:
+      tags:
+        - 'Article'
+      summary: 'List all articles'
+      description: 'All user can perform this action. The result will display 10 articles per page. You can use this url format to generate next page `/article?page=1` or `/article?page=2` and so on'
+      operationId: 'listAllArticle'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      responses:
+        '200':
+          description: 'OK'
+          schema:
+            type: 'array'
+            items:
+              $ref: '#/definitions/Article'
+        '400':
+          description: 'Unknown errors.'
+
+  /article/{id}:
+    get:
+      tags:
+        - 'Article'
+      summary: 'List article by article id'
+      description: 'All unauthenticated user can perform this action'
+      operationId: 'listOneArticle'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'Article id'
+          required: true
+          type: 'integer'
+      responses:
+        '200':
+          description: 'OK'
+          schema:
+            $ref: '#/definitions/Article'
+        '400':
+          description: 'Unknown errors'
+        '404':
+          description: 'Article not found.'
+
+    put:
+      tags:
+        - 'Article'
+      summary: 'Edit article by article id.'
+      description: 'User need authentication credentials to access endpoint.'
+      operationId: 'updateArticle'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'Article id'
+          required: true
+          type: 'integer'
+        - in: 'body'
+          name: 'body'
+          description: 'Article object payload that needs to be added to the database'
+          required: true
+          schema:
+            $ref: '#/definitions/Article'
+      responses:
+        '200':
+          description: 'Ok'
+          schema:
+            $ref: '#/definitions/Article'
+        '400':
+          description: 'Unknown errors'
+        '404':
+          description: 'Article not found.'
+      security:
+        - api_key: []
+
+    delete:
+      tags:
+        - 'Article'
+      summary: 'delete article by article id.'
+      description: 'All unauthenticated user can perform this action'
+      operationId: 'deleteArticle'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'Article id'
+          required: true
+          type: 'integer'
+      responses:
+        '200':
+          description: 'Article deleted'
+        '400':
+          description: 'Unknown errors'
+        '401':
+          description: 'Access Denied!'
+        '404':
+          description: 'Article not found.'
+      security:
+        - api_key: []
+
+  /category:
+    post:
+      tags:
+        - 'Category'
+      summary: 'Add a new category'
+      description: ''
+      operationId: 'addCategory'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - in: 'body'
+          name: 'body'
+          description: 'Category object payload'
+          required: true
+          schema:
+            $ref: '#/definitions/Category'
+      responses:
+        '201':
+          description: 'Created'
+          schema:
+            $ref: '#/definitions/Category'
+        '400':
+          description: 'Make sure all fields not empty!'
+        '401':
+          description: 'Unauthorized.'
+        '403':
+          description: 'Access denied'
+      security:
+        - api_key: []
+
+    get:
+      tags:
+        - 'Category'
+      summary: 'Show all categories'
+      description: ''
+      operationId: 'getCategory'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      responses:
+        '200':
+          description: 'Ok'
+          schema:
+            type: 'array'
+            items:
+              $ref: '#/definitions/Category'
+        '400':
+          description: 'Unknown errors.'
+        '403':
+          description: 'Access denied'
+
+  /category/{id}:
+    get:
+      tags:
+        - 'Category'
+      summary: 'Retrieve a category'
+      description: 'Show one category based on id selected'
+      operationId: 'getOneCategory'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'Category id'
+          required: true
+          type: 'integer'
+      responses:
+        '200':
+          description: 'Ok'
+          schema:
+            $ref: '#/definitions/Category'
+        '400':
+          description: 'Unknown errors.'
+        '404':
+          description: 'Category not found'
+    put:
+      tags:
+        - 'Category'
+      summary: 'Update a category'
+      description: ''
+      operationId: 'updateCategory'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'Category id'
+          required: true
+          type: 'integer'
+        - in: 'body'
+          name: 'body'
+          description: 'Category object payload'
+          required: true
+          schema:
+            $ref: '#/definitions/Category'
+      responses:
+        '200':
+          description: 'Ok'
+          schema:
+            $ref: '#/definitions/Category'
+        '400':
+          description: 'Unknown errors.'
+        '401':
+          description: 'Unauthorized.'
+        '403':
+          description: 'Access denied'
+        '404':
+          description: 'Category not found.'
+      security:
+        - api_key: []
+
+    delete:
+      tags:
+        - 'Category'
+      summary: 'Delete a category'
+      description: ''
+      operationId: 'deleteCategory'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'Category id'
+          required: true
+          type: 'integer'
+      responses:
+        '200':
+          description: 'Category deleted.'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Category not found.'
+        '403':
+          description: 'Access denied'
+      security:
+        - api_key: []
+
+  /gallery:
+    post:
+      tags:
+        - 'Gallery'
+      summary: 'Upload image file'
+      description: 'Allowed files to upload are JPG, JPEG, and PNG. Every image is uploaded with user id'
+      operationId: 'uploadGallery'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - in: 'path'
+          name: 'articleId'
+          required: false
+          type: 'integer'
+          format: 'int64'
+          description: 'Article id if any or leave it empty'
+        - in: 'formData'
+          name: 'filenames'
+          type: 'file'
+          required: false
+          description: 'file to upload'
+      responses:
+        '201':
+          description: 'Ok'
+          schema:
+            $ref: '#/definitions/Gallery'
+        '404':
+          description: 'No files found. At least upload one file.'
+        '403':
+          description: 'Access denied'
+      security:
+        - api_key: []
+    get:
+      tags:
+        - 'Gallery'
+      summary: 'Retrieve all image files'
+      description: 'Load all image files from database'
+      operationId: 'listGallery'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      responses:
+        '200':
+          description: 'Ok'
+          schema:
+            type: 'array'
+            items:
+              $ref: '#/definitions/Gallery'
+        '400':
+          description: 'Uknown errors'
+        '403':
+          description: 'Access denied'
+      security:
+        - api_key: []
+    delete:
+      tags:
+        - 'Gallery'
+      summary: 'Delete all image files'
+      description: 'Be Aware to hit the endpoint. Only superadmin or admin can perform the action. This endpoint will delete the whole files from database'
+      operationId: 'deleteAllGallery'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      responses:
+        '200':
+          description: 'All galleries completely deleted.'
+        '400':
+          description: 'Unknown errors'
+        '401':
+          description: 'You are unauthorized!'
+        '403':
+          description: 'Access denied'
+      security:
+        - api_key: []
+
+  /gallery/{id}:
+    delete:
+      tags:
+        - 'Gallery'
+      summary: 'Delete image files by image id'
+      description: 'All authenticated user can peform this. Non superadmin/admin only can delete his own image.'
+      operationId: 'deleteOneGallery'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - in: 'path'
+          name: 'id'
+          type: 'integer'
+          required: true
+          description: 'Gallery id'
+      responses:
+        '200':
+          description: 'Gallery deleted.'
+        '400':
+          description: 'Unknown errors'
+        '403':
+          description: 'Access denied'
+        '401':
+          description: 'Gallery not found or you are not authorized to delete'
+        '404':
+          description: 'Gallery not found'
+      security:
+        - api_key: []
+    get:
+      tags:
+        - 'Gallery'
+      summary: 'Get image files by image id'
+      description: 'No authorized access need'
+      operationId: 'getOneGallery'
+      consumes:
+        - 'application/json'
+        - 'application/xml'
+      produces:
+        - 'application/json'
+        - 'application/xml'
+      parameters:
+        - in: 'path'
+          name: 'id'
+          type: 'integer'
+          required: true
+          description: 'Gallery id'
+      responses:
+        '200':
+          description: 'Ok'
+          schema:
+            $ref: '#/definitions/Gallery'
+        '400':
+          description: 'Unknown errors'
+        '404':
+          description: 'Gallery not found'
+
+definitions:
+  User:
+    type: 'object'
+    properties:
+      firstName:
+        type: 'string'
+        description: 'Your firstName:'
+      lastName:
+        type: 'string'
+        description: 'Your lastName:'
+      username:
+        type: 'string'
+        description: 'Your username'
+      email:
+        type: 'string'
+        description: 'Email'
+      password:
+        type: 'string'
+        format: 'password'
+      role:
+        type: 'integer'
+        format: 'int64'
+      active:
+        type: 'boolean'
+        default: false
+    xml:
+      name: 'User'
+
+  Password:
+    type: 'object'
+    properties:
+      password:
+        type: 'string'
+        description: 'Password'
+
+  Login:
+    type: 'object'
+    properties:
+      email:
+        type: 'string'
+        description: 'Your email address'
+      password:
+        type: 'string'
+        description: 'Your password'
+
+  Levelauth:
+    type: 'object'
+    properties:
+      name:
+        type: 'string'
+        description: 'User level name'
+      level:
+        type: 'integer'
+        format: 'int64'
+        description: 'Your password'
+
+  Article:
+    type: 'object'
+    properties:
+      categoryId:
+        type: 'integer'
+        format: 'int64'
+        required: true
+      title:
+        type: 'string'
+        description: 'Title of article'
+      subtitle:
+        type: 'string'
+        description: 'Subtitle of article'
+      description:
+        type:: 'string'
+        description: 'Content of articles'
+      tags:
+        type: 'array'
+        items:
+          $ref: '#/definitions/Tag'
+
+  Tag:
+    type: 'object'
+    properties:
+      name:
+        type: 'string'
+
+  Category:
+    type: 'object'
+    required:
+      - 'name'
+    properties:
+      name:
+        type: 'string'
+        description: 'Name of category'
+
+  Gallery:
+    type: 'object'
+    required:
+      - 'userId'
+    properties:
+      userId:
+        type: 'integer'
+        format: 'int64'
+      articleId:
+        type: 'integer'
+        format: 'int64'
+      name:
+        type: 'string'
+        description: 'Image name'
+
+  Level:
+    type: 'object'
+    required:
+      - 'role'
+    properties:
+      role:
+        type: 'integer'
+        format: 'int64'

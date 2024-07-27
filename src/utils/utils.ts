@@ -1,4 +1,5 @@
 const fs = require('fs');
+import Redis from 'ioredis';
 const { mkdir, unlink } = require('node:fs/promises');
 const path = require('path');
 import bcrypt from 'bcryptjs';
@@ -11,6 +12,10 @@ import * as types from './type';
 
 dotenv.config();
 
+export const redis = new Redis({
+    port: Number(process.env.REDIS_PORT),
+    host: process.env.REDIS_HOST
+})
 
 const User = require("../models").User;
 const Level = require("../models").AuthLevel;
@@ -236,6 +241,9 @@ export class ErrResHandler implements types.ErrorType{
     get_404_categoryNotFound(): Response {
         return this.res.status(404).json({message: ErrorMsgEnum.CATEGORY_NOT_FOUND});
     }
+    get_404_fileNotFound(): Response {
+        return this.res.status(404).json({message: ErrorMsgEnum.NO_FILE_FOUND});
+    }
     get_404_userNotFound(): Response {
         return this.res.status(404).json({message: ErrorMsgEnum.ID_NOT_FOUND});
     }
@@ -248,6 +256,9 @@ export class ErrResHandler implements types.ErrorType{
     get_400_fieldNotEmpty(): Response {
         return this.res.status(400).send({message: ErrorMsgEnum.FIELD_SHOULDNOT_EMPTY});
     }
+    get_400_roleNotAvailable(): Response {
+        return this.res.status(400).send({message: ErrorMsgEnum.ROLE_UNAVAILABLE});
+    }
     get_401_emailExist(): Response {
         return this.res.status(401).send({message: ErrorMsgEnum.EMAIL_ALREADY_REGISTERED});
     }
@@ -256,6 +267,9 @@ export class ErrResHandler implements types.ErrorType{
     }
     get_401_unAuthorized(): Response {
         return this.res.status(401).send({message: ErrorMsgEnum.UNAUTHORIZED});
+    }
+    get_401_onlySuperUser(): Response {
+        return this.res.status(401).send({message: ErrorMsgEnum.SUPERUSER_ONLY});
     }
     get_401_galleryCantBeDeleted(): Response {
         return this.res.status(401).send({message: ErrorMsgEnum.GALLERY_CANTBE_DELETED});
@@ -279,12 +293,13 @@ export class UserSuccessResHandler implements types.UserSuccessType {
     get_200_userResObject(userObject: UserResponseObject): Response {
         return this.res.status(201).json(userObject);
     }
+    get_200_passwordUpdated(): Response {
+        return this.res.status(200).json({message: SuccessMsgEnum.PASSWORD_UPDATED})
+    }
     get_201_userResObject(userObject: UserResponseObject): Response {
         return this.res.status(201).json(userObject)
     }
-    get_201_passwordUpdated(): Response {
-        return this.res.status(201).json({message: SuccessMsgEnum.PASSWORD_UPDATED})
-    } 
+     
 }
 
 export class ArticleSuccessResHandler implements types.ArticleSuccessType {
@@ -373,22 +388,52 @@ export class Articles implements types.ArticleFieldType, types.ArticleMethodGetT
     }
 }
 
-export class ArticlesBodyParams implements types.ArticleFieldNoIdType {
-    readonly userId: number;
-    readonly categoryId: number;
-    readonly title: string;
-    readonly subtitle: string;
-    readonly description: string;
-    readonly tags: types.TagObject[];
+export class ArticlesBodyParams implements types.ArticleMethodGetType{
+    private id: number;
+    private userId: number;
+    private categoryId: number;
+    private title: string;
+    private subtitle: string;
+    private description: string;
+    private tags: types.TagObject[];
     
     constructor(req: Request){
+        this.id = Number(req.params.id);
         this.userId = req.body.userId;
         this.categoryId = req.body.categoryId;
         this.title = req.body.title;
         this.subtitle = req.body.subtitle;
         this.description = req.body.description;
-        this.tags = req.body.tags;
+        this.tags = req.body.tags ?? [];
     }
+    getId(): number {
+        return this.id;
+    }
+    getCategoryId(): number {
+        return this.categoryId;
+    }
+    getUserId(): number {
+        return this.userId
+    }
+    getTitle(): string {
+        return this.title;
+    }
+    getSubtitle(): string {
+        return this.subtitle;
+    }
+    getDescription(): string {
+        return this.description;
+    }
+    getTags(): types.TagObject[] {
+        return this.tags;
+    }
+    setUserId(id: number){
+        this.userId = id;
+    }
+    setCategoryId(id: number){
+        this.categoryId = id;
+    }
+    
 }
 
 export class ArticlesObjectResponse{
@@ -455,17 +500,17 @@ export async function createUpdateArticleTags(tagObject: types.TagObject[], arti
         }
 }
 
-export function assignIdToTagsObject(articleTags: types.TagObject[], payload: types.ArticleFieldNoIdNoRoType): 
+export function assignIdToTagsObject(articleTags: types.TagObject[], payload: types.ArticleMethodGetType): 
 types.TagObject[]{
 
     const tagObjects = new Array();
-    const isTagExist = payload.tags.length > 0;
+    const isTagExist = payload.getTags().length > 0;
 
     if(isTagExist){
-        for(let i=0; i < payload.tags.length; i++){
+        for(let i=0; i < payload.getTags().length; i++){
             const new_articleTags = new ArticleTags(
                 articleTags[i]?.id ?? undefined, 
-                payload.tags[i].name,
+                payload.getTags()[i].name,
                 articleTags[i]?.createdAt ?? new Date,
                 articleTags[i]?.updatedAt ?? new Date
             );
@@ -558,6 +603,23 @@ export function allowAdminAccess(userAccess: types.JWTType): boolean{
     return false;
 }
 
+export function allowSuperAdminAccess(userAccess: types.JWTType): boolean{
+    if(userAccess.level === UserLevelEnum.SUPERADMIN) return true;
+    else return false;
+}
+
+export function isAssignUserAccessAllowed(req: Request, userAccess: types.JWTType, user: typeof User): boolean {
+    const { role } = req.body;
+    let allowed: boolean = true
+
+    if(role === UserLevelEnum.SUPERADMIN && userAccess.level === UserLevelEnum.ADMIN){
+        allowed = false;
+    }
+    if(user.role === UserLevelEnum.SUPERADMIN && userAccess.level === UserLevelEnum.ADMIN){
+        allowed = false;
+    }
+    return allowed;
+}
 
 export async function deleteImages(imageName: types.GalleryType[]){
     const folderPath = 'public/uploads/'
@@ -581,7 +643,7 @@ export async function isGalleryExistAndDeleted(user: types.JWTType, galleryID: n
     const galleries: types.GalleryType[] = await Gallery.findAll(
         {where: {id: galleryID, userId: user.id}}
     );
-    if(galleries){
+    if(galleries.length){
         await Gallery.destroy({where: {id: galleryID}});
         await deleteImages(galleries);
         return true;
@@ -594,10 +656,14 @@ export class Pagination{
     private page: number;
     private offset: number;
 
-    constructor(limit: number, page: number){
+    constructor(limit: number, req: Request){
         this.limit = limit;
-        this.page = page;
-        this.offset = this.setOffset()
+        this.page = this.setPage(req);
+        this.offset = this.setOffset();
+    }
+
+    private setPage(req: Request){
+        return req.query.page ? (Number(req.query.page) === 0 ? 1 : Number(req.query.page)) : 1;
     }
 
     private setOffset(){
@@ -613,4 +679,18 @@ export class Pagination{
     getOffset(){
         return this.offset;
     }
+}
+
+export async function cacheAllArticlesMiddleware(req: Request, res: Response, next: NextFunction){
+    const articlePage = req.query?.page ?? 1;
+    const cachedData = await redis.get(`articles?page=${articlePage}`);
+    if(cachedData) res.status(200).json(JSON.parse(cachedData));
+    else next();
+}
+
+export async function cacheOneArticleMiddleware(req: Request, res: Response, next: NextFunction){
+    const articleID = req.params?.id;
+    const cachedData = await redis.get(`articles/${articleID}`)
+    if(cachedData) res.status(200).json(JSON.parse(cachedData));
+    else next()
 }
