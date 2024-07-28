@@ -1,3 +1,4 @@
+require('dotenv').config();
 import express from 'express';
 import { verifyJWTToken, cacheAllArticlesMiddleware, cacheOneArticleMiddleware } from '../utils/utils';
 const UserRoutes = require('./users');
@@ -9,7 +10,7 @@ const router = express.Router();
 
 const fs = require("fs")
 const YAML = require('yaml')
-const file  = fs.readFileSync(require.resolve('../utils/swagger.yaml'), {encoding: 'utf8'});
+let file  = fs.readFileSync(require.resolve('../utils/swagger.yaml'), {encoding: 'utf8'});
 const swaggerDocument = YAML.parse(file)
 const swaggerUi = require('swagger-ui-express');
 

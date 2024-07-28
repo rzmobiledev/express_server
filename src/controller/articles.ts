@@ -38,7 +38,7 @@ module.exports = {
             });
             
             if(!article) return error.get_404_articleNotFound();
-            await utils.redis.set(`articles/${articleId}`, JSON.stringify(article), 'EX', 3600); 
+            await utils.redis.set(`articles/${articleId}`, JSON.stringify(article)); 
             return res.status(200).json(article);
 
         }catch(err){
@@ -48,6 +48,7 @@ module.exports = {
 
     async createNewArticle(req: Request, res: Response){
         const error = new utils.ErrResHandler(res);
+        const success = new utils.ArticleSuccessResHandler(res);
         const bodyParams = new utils.ArticlesBodyParams(req);
         const userAccess: JWTType = res.locals?.auth;
 
@@ -65,13 +66,7 @@ module.exports = {
             });
             
             await utils.createUpdateArticleTags(bodyParams.getTags(), article);
-            const result = await Article.findByPk(article.id, {
-                include: [{
-                    model: Tag,
-                    as: 'tags'
-                }]
-            });
-            return res.status(201).json(result)
+            return success.get_201_articleCreated();
         }catch(err){
             return error.get_globalError(err);
         }

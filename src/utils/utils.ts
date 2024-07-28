@@ -14,7 +14,10 @@ dotenv.config();
 
 export const redis = new Redis({
     port: Number(process.env.REDIS_PORT),
-    host: process.env.REDIS_HOST
+    host: process.env.REDIS_HOST,
+    username: "default",
+    password: process.env.REDIS_PASS,
+    db: 0
 })
 
 const User = require("../models").User;
@@ -164,8 +167,8 @@ export async function verifyJWTToken(req: Request, res: Response, next: NextFunc
 
 export async function checkEmailifExists(email: string): Promise<boolean> { 
     const userExists = await User.findOne({
-        where: {email: email}
-           
+        where: {email: email},
+        attributes: ['email']
         });
     return Boolean(userExists)
     
@@ -173,8 +176,8 @@ export async function checkEmailifExists(email: string): Promise<boolean> {
 
 export async function checkLevelifExists(id: number): Promise<boolean> { 
     const userExists = await Level.findOne({
-        where: {id: id}
-           
+        where: {id: id},
+        attributes: ['id']   
         });
     return Boolean(userExists)
     
@@ -256,9 +259,6 @@ export class ErrResHandler implements types.ErrorType{
     get_400_fieldNotEmpty(): Response {
         return this.res.status(400).send({message: ErrorMsgEnum.FIELD_SHOULDNOT_EMPTY});
     }
-    get_400_roleNotAvailable(): Response {
-        return this.res.status(400).send({message: ErrorMsgEnum.ROLE_UNAVAILABLE});
-    }
     get_401_emailExist(): Response {
         return this.res.status(401).send({message: ErrorMsgEnum.EMAIL_ALREADY_REGISTERED});
     }
@@ -273,6 +273,9 @@ export class ErrResHandler implements types.ErrorType{
     }
     get_401_galleryCantBeDeleted(): Response {
         return this.res.status(401).send({message: ErrorMsgEnum.GALLERY_CANTBE_DELETED});
+    }
+    get_404_roleNotFound(): Response {
+        return this.res.status(405).send({message: ErrorMsgEnum.ROLE_NOT_FOUND})
     }
     get_405_passwdEmpty(): Response {
         return this.res.status(405).send({message: ErrorMsgEnum.PASSWORD_EMPTY})
@@ -311,6 +314,10 @@ export class ArticleSuccessResHandler implements types.ArticleSuccessType {
     }
 
     get_200_articleDeleted(): Response {
+        return this.res.status(200).json({message: SuccessMsgEnum.ARTICLE_DELETED})
+    }
+
+    get_201_articleCreated(): Response {
         return this.res.status(200).json({message: SuccessMsgEnum.ARTICLE_DELETED})
     }
 }
@@ -608,7 +615,7 @@ export function allowSuperAdminAccess(userAccess: types.JWTType): boolean{
     else return false;
 }
 
-export function isAssignUserAccessAllowed(req: Request, userAccess: types.JWTType, user: typeof User): boolean {
+export function isAssignUserRoleAllowed(req: Request, userAccess: types.JWTType, user: typeof User): boolean {
     const { role } = req.body;
     let allowed: boolean = true
 
@@ -619,6 +626,12 @@ export function isAssignUserAccessAllowed(req: Request, userAccess: types.JWTTyp
         allowed = false;
     }
     return allowed;
+}
+
+export async function isRoleUserExist(role: number): Promise<boolean>{
+    const level = await Level.findOne({ where: { level: Number(role)}, attributes: ['level'] });
+    if(level != null) return true
+    return false
 }
 
 export async function deleteImages(imageName: types.GalleryType[]){

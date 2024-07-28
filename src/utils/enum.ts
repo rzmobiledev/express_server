@@ -22,6 +22,7 @@ export const ErrorMsgEnum = Object.freeze({
     ID_NOT_FOUND: "ID Not Found!",
     ARTICLE_NOT_FOUND: "Article not found",
     CATEGORY_NOT_FOUND: "Category not found",
+    ROLE_NOT_FOUND: "Role user not found.",
     GALLERY_NOT_FOUND: "Gallery not found",
     NO_FILE_FOUND: "No files found. At least upload one file.",
     GALLERY_CANTBE_DELETED: "Gallery not found or you are not authorized to delete.",
@@ -49,6 +50,7 @@ export const SuccessMsgEnum = Object.freeze({
     LEVEL_UPDATED: 'Level updated.',
     LEVEL_DELETED: 'Level deleted.',
     ARTICLE_DELETED: 'Article deleted.',
+    ARTICLE_CREATED: 'Article created.',
     GALLERY_DELETED: 'Gallery deleted.',
     ALL_GALLERY_DELETED: 'All galleries completely deleted.'
 })
