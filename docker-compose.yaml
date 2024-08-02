@@ -9,6 +9,8 @@ services:
     depends_on:
       - db
       - redis
+    volumes:
+      - ${PWD}:/app
 
   db:
     container_name: db

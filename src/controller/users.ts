@@ -292,7 +292,9 @@ module.exports = {
             }
             
             return await utils.compareUserPassword(req, res);
+
         }catch(err){
+            console.log(err)
             return error.get_globalError(err);
         }
     }

@@ -1,6 +1,6 @@
 import { Response, Request } from "express";
 import * as utils from '../utils/utils';
-import { JWTType } from "../utils/type";
+import { JWTType, ArticleFieldNoIdNoRoType } from "../utils/type";
 const Article = require('../models').Article;
 const Tag = require('../models').Tag;
 const ArticleTag = require('../models').ArticleTag;
@@ -51,21 +51,13 @@ module.exports = {
         const success = new utils.ArticleSuccessResHandler(res);
         const bodyParams = new utils.ArticlesBodyParams(req);
         const userAccess: JWTType = res.locals?.auth;
-
+        const channel = 'articles'
         bodyParams.setUserId(userAccess.id!)
         
         try{
             if(!bodyParams.getCategoryId()) return error.get_404_categoryNotFound();
-
-            const article = await Article.create({
-                userId: Number(bodyParams.getUserId()),
-                categoryId: Number(bodyParams.getCategoryId()),
-                title: bodyParams.getTitle(),
-                subtitle: bodyParams.getSubtitle(),  
-                description: bodyParams.getDescription()
-            });
-            
-            await utils.createUpdateArticleTags(bodyParams.getTags(), article);
+            await utils.createChannelBroker(channel, bodyParams);
+            await utils.consumeArticleBroker(channel, async() => await utils.createArticle(bodyParams));
             return success.get_201_articleCreated();
         }catch(err){
             return error.get_globalError(err);

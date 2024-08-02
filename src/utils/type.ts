@@ -201,3 +201,5 @@ export type PaginationType = {
     page: number;
     offset: number;
 }
+
+export type callback = (arg: any) => Promise<void>

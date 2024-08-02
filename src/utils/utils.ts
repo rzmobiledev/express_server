@@ -1,5 +1,6 @@
 const fs = require('fs');
 import Redis from 'ioredis';
+import amqplib, { Channel, Connection } from 'amqplib';
 const { mkdir, unlink } = require('node:fs/promises');
 const path = require('path');
 import bcrypt from 'bcryptjs';
@@ -19,6 +20,9 @@ export const redis = new Redis({
     password: process.env.REDIS_PASS,
     db: 0
 })
+
+// rabbitmq to be global variables
+export let channel: Channel, connection: Connection
 
 const User = require("../models").User;
 const Level = require("../models").AuthLevel;
@@ -232,7 +236,6 @@ export class ErrResHandler implements types.ErrorType{
         const error = 'errors';
         const name = 'name';
         const isForeignKeyError: boolean = name in err && err.name === 'SequelizeForeignKeyConstraintError';
-
         if(error in err) return this.res.status(400).send({message: ErrorMsgEnum.SOFT_DELETED_DETECT});
         else if(isForeignKeyError) return this.res.status(400).send({message: err.parent.detail});
         else if(err instanceof multer.MulterError) return this.res.status(400).send({message: err.message});
@@ -318,7 +321,7 @@ export class ArticleSuccessResHandler implements types.ArticleSuccessType {
     }
 
     get_201_articleCreated(): Response {
-        return this.res.status(200).json({message: SuccessMsgEnum.ARTICLE_DELETED})
+        return this.res.status(200).json({message: SuccessMsgEnum.ARTICLE_CREATED})
     }
 }
 
@@ -495,7 +498,7 @@ export class ArticleTags implements types.ArticleTagsType {
     }
 }
 
-export async function createUpdateArticleTags(tagObject: types.TagObject[], article: typeof Article){
+export async function createUpdateArticleTags(tagObject: types.TagObjNoId[], article: typeof Article){
         const isTagExist = tagObject.length > 0;
         if(isTagExist){ 
             for(const tagName of tagObject){
@@ -706,4 +709,53 @@ export async function cacheOneArticleMiddleware(req: Request, res: Response, nex
     const cachedData = await redis.get(`articles/${articleID}`)
     if(cachedData) res.status(200).json(JSON.parse(cachedData));
     else next()
+}
+
+const RabbitSettings = {
+    protocol: process.env.AMQP_PROTOCOL,
+    hostname: process.env.AMQP_HOST,
+    port: process.env.AMQP_PORT,
+    username: process.env.AMQP_USERNAME,
+    password: process.env.AMQP_PASSWORD,
+    authMechanism: process.env.AMQP_AUTH,
+    vhost: '/',
+    queue: 'test'
+}
+
+export async function startBrokerChannel() {
+  try {
+    const amqpServer = `amqp://${RabbitSettings.hostname}:${RabbitSettings.port}`
+    connection = await amqplib.connect(amqpServer)
+    channel = await connection.createChannel();
+
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+export async function createChannelBroker(channelName: string, data: any){
+    await channel.assertQueue(channelName, { durable: true});
+    channel.sendToQueue(channelName, Buffer.from(JSON.stringify(data)), {
+        persistent: true
+    },);
+}
+
+export async function consumeArticleBroker(channelName: string, callback: types.callback){
+    await channel.assertQueue(channelName, { durable: true});
+    await channel.consume(channelName, async(msg) => {
+        let message = msg?.content.toString();
+        const data = JSON.parse(message!)
+        await callback(data);
+    }, { noAck: true});
+}
+
+export async function createArticle(data: types.ArticleFieldNoIdNoRoType | any): Promise<void> {
+    const article = Article.create({
+        userId: Number(data.userId),
+        categoryId: Number(data.categoryId),
+        title: data.title,
+        subtitle: data.subtitle,  
+        description: data.description
+    });
+    await createUpdateArticleTags(data.tags, article);
 }
