@@ -3,7 +3,7 @@ import * as utils from '../utils/utils';
 import { JWTType, ArticleFieldNoIdNoRoType } from "../utils/type";
 const Article = require('../models').Article;
 const Tag = require('../models').Tag;
-const ArticleTag = require('../models').ArticleTag;
+
 
 
 module.exports = {
@@ -18,7 +18,7 @@ module.exports = {
                 limit: pagination.getLimit(),
                 order: [["createdAt", "DESC"]]
             });
-            await utils.redis.set(`articles?page=${pagination.getPage()}`, JSON.stringify(articles), 'EX', 3600); 
+            await utils.redis.set(`articles?page=${pagination.getPage()}`, JSON.stringify(articles), 'EX', 1800); 
             return res.status(200).json(articles);
         }catch(err){
             return error.get_globalError(err)
@@ -28,7 +28,6 @@ module.exports = {
     async getOneArticle(req: Request, res: Response){
         const error = new utils.ErrResHandler(res);
         const articleId = req.params.id;
-        
         try{
             const article = await Article.findByPk(articleId, {
                 include: [{
@@ -36,9 +35,9 @@ module.exports = {
                     as: 'tags',
                 }]
             });
-            
+
             if(!article) return error.get_404_articleNotFound();
-            await utils.redis.set(`articles/${articleId}`, JSON.stringify(article)); 
+            await utils.redis.set(`articles/${articleId}`, JSON.stringify(article));
             return res.status(200).json(article);
 
         }catch(err){
@@ -51,14 +50,15 @@ module.exports = {
         const success = new utils.ArticleSuccessResHandler(res);
         const bodyParams = new utils.ArticlesBodyParams(req);
         const userAccess: JWTType = res.locals?.auth;
-        const channel = 'articles'
+        const channel = 'articleCreated'
         bodyParams.setUserId(userAccess.id!)
         
         try{
             if(!bodyParams.getCategoryId()) return error.get_404_categoryNotFound();
             await utils.createChannelBroker(channel, bodyParams);
-            await utils.consumeArticleBroker(channel, async() => await utils.createArticle(bodyParams));
+            await utils.consumeBroker(channel, utils.createArticle);
             return success.get_201_articleCreated();
+
         }catch(err){
             return error.get_globalError(err);
         }
@@ -68,7 +68,7 @@ module.exports = {
         const error = new utils.ErrResHandler(res);
         const bodyParams = new utils.ArticlesBodyParams(req);
         const articleId = req.params.id;
-
+        const channel = 'articleUpdated'
         try{
             if(!bodyParams.getCategoryId()) return error.get_404_categoryNotFound();
             const article = await Article.findByPk(articleId, {
@@ -83,8 +83,8 @@ module.exports = {
             const articleTagsToJson = articleTagsObject ? JSON.parse(articleTagsObject) : [];
             const tagObjectsWithID = utils.assignIdToTagsObject(articleTagsToJson, bodyParams);
             
-            await article.update(bodyParams);
-            await utils.createUpdateArticleTags(bodyParams.getTags(), article);            
+            await utils.createChannelBroker(channel, bodyParams);
+            await utils.consumeBroker(channel, utils.updateArticle)
             
             const response = new utils.ArticlesObjectResponse(req, tagObjectsWithID, articleTagsToJson);
             utils.redis.del(`articles/${articleId}`);
@@ -99,19 +99,13 @@ module.exports = {
         const error = new utils.ErrResHandler(res);
         const success = new utils.ArticleSuccessResHandler(res);
         const articleId = Number(req.params.id)
-        
+        const channel = 'articleDeleted'
+
         try{
-            const article = await ArticleTag.destroy({
-                where: {articleId: articleId}
-            });
-
-            if(!article) return error.get_404_articleNotFound();
-
-            await Article.destroy({
-                where: {id: articleId}
-            });
-            utils.redis.del(`articles/${articleId}`);
-             return success.get_200_articleDeleted();
+            const brokerData = { id: articleId}
+            await utils.createChannelBroker(channel, brokerData);
+            await utils.consumeBroker(channel, utils.deleteArticle)
+            return success.get_200_articleDeleted();
             
         }catch(err){
             return error.get_globalError(err);

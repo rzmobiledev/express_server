@@ -23,11 +23,12 @@ export const redis = new Redis({
 
 // rabbitmq to be global variables
 export let channel: Channel, connection: Connection
-
+const {Model} = require('sequelize');
 const User = require("../models").User;
 const Level = require("../models").AuthLevel;
 const Article = require('../models').Article;
 const Tag = require('../models').Tag;
+const ArticleTag = require('../models').ArticleTag;
 const Gallery = require('../models').Gallery;
 const jwt = require("jsonwebtoken");
 
@@ -416,6 +417,19 @@ export class ArticlesBodyParams implements types.ArticleMethodGetType{
         this.description = req.body.description;
         this.tags = req.body.tags ?? [];
     }
+
+    json(): types.ArticleFieldType {
+        return {
+            id: this.getId(),
+            userId: this.getUserId(),
+            categoryId: this.getCategoryId(),
+            title: this.getTitle(),
+            subtitle: this.getSubtitle(),
+            description: this.getDescription(),
+            tags: this.getTags(),
+        }
+    }
+
     getId(): number {
         return this.id;
     }
@@ -499,14 +513,16 @@ export class ArticleTags implements types.ArticleTagsType {
 }
 
 export async function createUpdateArticleTags(tagObject: types.TagObjNoId[], article: typeof Article){
-        const isTagExist = tagObject.length > 0;
+        const isTagExist = tagObject?.length > 0;
+        const allTags = []
         if(isTagExist){ 
             for(const tagName of tagObject){
                 const [tag, created] = await Tag.findOrCreate({
-                    where: { name: tagName.name }
+                    where: { name: tagName }
                 });
-                article.addTag(tag);
+                allTags.push(tag)
             }
+            await article.setTags(allTags)
         }
 }
 
@@ -729,7 +745,7 @@ export async function startBrokerChannel() {
     channel = await connection.createChannel();
 
   } catch (error) {
-    console.log(error)
+    console.log(error);
   }
 }
 
@@ -740,22 +756,49 @@ export async function createChannelBroker(channelName: string, data: any){
     },);
 }
 
-export async function consumeArticleBroker(channelName: string, callback: types.callback){
+export async function consumeBroker(channelName: string, callback: CallableFunction){
     await channel.assertQueue(channelName, { durable: true});
-    await channel.consume(channelName, async(msg) => {
+    return await channel.consume(channelName, async(msg) => {
         let message = msg?.content.toString();
         const data = JSON.parse(message!)
         await callback(data);
     }, { noAck: true});
 }
 
-export async function createArticle(data: types.ArticleFieldNoIdNoRoType | any): Promise<void> {
-    const article = Article.create({
+export async function createArticle(data: types.ArticleFieldNoIdNoRoType): Promise<void> {
+    const article = Article.build({
         userId: Number(data.userId),
         categoryId: Number(data.categoryId),
         title: data.title,
         subtitle: data.subtitle,  
         description: data.description
     });
+    await article.save();
     await createUpdateArticleTags(data.tags, article);
+}
+
+export async function updateArticle(data: types.ArticleFieldType){
+    await Article.update(data, { where: { id: data.id}});
+    const article = await Article.findByPk(data.id);
+    await createUpdateArticleTags(data.tags, article);
+} 
+
+export async function deleteArticle(article: {id: number}){
+    console.log(article)
+    await ArticleTag.destroy({
+        where: {articleId: article.id}
+    });
+    await Article.destroy({
+        where: {id: article.id}
+    });
+
+}
+
+export async function getOneArticle(data: {id: number}){
+    return await Article.findByPk(data.id, {
+        include: [{
+            model: Tag,
+            as: 'tags',
+        }]
+    });
 }

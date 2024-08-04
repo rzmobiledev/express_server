@@ -4,7 +4,7 @@ import bodyParser from "body-parser";
 import Routes from './controller/router';
 
 dotenv.config()
-const { startBrokerChannel } = require('./utils/utils');
+import { startBrokerChannel } from './utils/utils';
 
 const app: Express = express();
 const hostname: string = String(process.env.HOST) || 'localhost';
