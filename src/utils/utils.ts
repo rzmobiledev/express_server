@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import {NextFunction, Request, Response } from 'express';
 import multer, { FileFilterCallback } from 'multer';
-import { ErrorMsgEnum, PasswordEnum, SuccessMsgEnum, UserLevelEnum } from './enum';
+import { ErrorMsgEnum, PasswordEnum, SuccessMsgEnum, UserLevelEnum, ArticleEnum, RedisName } from './enum';
 import * as types from './type';
 
 
@@ -512,7 +512,7 @@ export class ArticleTags implements types.ArticleTagsType {
     }
 }
 
-export async function createUpdateArticleTags(tagObject: types.TagObjNoId[], article: typeof Article){
+export async function createUpdateArticleTags(tagObject: types.TagObjNoId[], article: typeof Article, status: string){
         const isTagExist = tagObject?.length > 0;
         const allTags = []
         if(isTagExist){ 
@@ -524,6 +524,8 @@ export async function createUpdateArticleTags(tagObject: types.TagObjNoId[], art
             }
             await article.setTags(allTags)
         }
+
+        await crudArticleInCache(status, article, allTags);
 }
 
 export function assignIdToTagsObject(articleTags: types.TagObject[], payload: types.ArticleMethodGetType): 
@@ -695,7 +697,12 @@ export class Pagination{
     }
 
     private setPage(req: Request){
-        return req.query.page ? (Number(req.query.page) === 0 ? 1 : Number(req.query.page)) : 1;
+        /* 
+        if article?page=0 then it will return (0)
+        if article?page=-1 then it should remains (0) 
+        */
+        const page = Number(req.query.page)
+        return page ? (page <= 0 ? 0 : page - 1) : 0;
     }
 
     private setOffset(){
@@ -713,18 +720,35 @@ export class Pagination{
     }
 }
 
-export async function cacheAllArticlesMiddleware(req: Request, res: Response, next: NextFunction){
+export async function cacheAllArticlesMiddPagination(req: Request, res: Response, next: NextFunction){
     const articlePage = req.query?.page ?? 1;
-    const cachedData = await redis.get(`articles?page=${articlePage}`);
-    if(cachedData) res.status(200).json(JSON.parse(cachedData));
+    const articleInCache = await redis.get(`articles?page=${articlePage}`);
+    if(articleInCache) res.status(200).json(JSON.parse(articleInCache));
     else next();
 }
 
+export async function cacheAllArticlesMiddleware(req: Request, res: Response, next: NextFunction){
+    let limit = 10;
+    const pagination = new Pagination(limit, req);
+    console.log(pagination.getLimit())
+
+    const articleInCache = await redis.lrange(RedisName.ARTICLES, pagination.getPage(), pagination.getLimit());
+    const articleData:any[] = articleInCache.map((data) => JSON.parse(data));
+    if(articleData.length === 0 && pagination.getPage() === 0){
+        next();
+    }
+    else res.status(200).json(articleData);
+}
+
 export async function cacheOneArticleMiddleware(req: Request, res: Response, next: NextFunction){
-    const articleID = req.params?.id;
-    const cachedData = await redis.get(`articles/${articleID}`)
-    if(cachedData) res.status(200).json(JSON.parse(cachedData));
-    else next()
+    const articleID = Number(req.params?.id);
+    const articleInCache = await redis.lrange(RedisName.ARTICLES, 0, -1);
+    if(articleInCache.length > 0) {
+        const articleArrJson = articleInCache.map((data) => JSON.parse(data));
+        const article = articleArrJson.filter((item) => item['id'] === articleID)[0]
+        return res.status(200).json(article);
+    }
+    next()
 }
 
 const RabbitSettings = {
@@ -766,7 +790,7 @@ export async function consumeBroker(channelName: string, callback: CallableFunct
 }
 
 export async function createArticle(data: types.ArticleFieldNoIdNoRoType): Promise<void> {
-    const article = Article.build({
+    const article = await Article.build({
         userId: Number(data.userId),
         categoryId: Number(data.categoryId),
         title: data.title,
@@ -774,17 +798,16 @@ export async function createArticle(data: types.ArticleFieldNoIdNoRoType): Promi
         description: data.description
     });
     await article.save();
-    await createUpdateArticleTags(data.tags, article);
+    await createUpdateArticleTags(data.tags, article, ArticleEnum.CREATE);
 }
 
 export async function updateArticle(data: types.ArticleFieldType){
     await Article.update(data, { where: { id: data.id}});
     const article = await Article.findByPk(data.id);
-    await createUpdateArticleTags(data.tags, article);
+    await createUpdateArticleTags(data.tags, article, ArticleEnum.UPDATE);
 } 
 
 export async function deleteArticle(article: {id: number}){
-    console.log(article)
     await ArticleTag.destroy({
         where: {articleId: article.id}
     });
@@ -792,6 +815,7 @@ export async function deleteArticle(article: {id: number}){
         where: {id: article.id}
     });
 
+    await deleteArticleInCache(article.id)
 }
 
 export async function getOneArticle(data: {id: number}){
@@ -801,4 +825,32 @@ export async function getOneArticle(data: {id: number}){
             as: 'tags',
         }]
     });
+}
+
+async function crudArticleInCache(status: string, article: typeof Article, allTags: typeof Tag[]){
+    let articlesForCache = article.toJSON();
+    articlesForCache['tags'] = allTags;
+
+    if(status === ArticleEnum.CREATE){
+        await redis.lpush(RedisName.ARTICLES, JSON.stringify(articlesForCache));
+    }
+
+    else if (status === ArticleEnum.UPDATE){
+        await updateArticleInCache(articlesForCache, articlesForCache.id)
+    }
+}
+
+async function updateArticleInCache(articlesForCache: Object, articleId: number){
+    let allCachedArticles = await redis.lrange(RedisName.ARTICLES, 0, -1);
+    let articleCachedToJson = allCachedArticles.map((data) => JSON.parse(data));
+    let articleIndex = articleCachedToJson.findIndex((item) => item['id'] === articleId)
+    const lsetIndex = articleIndex - 1;
+    await redis.lset(RedisName.ARTICLES, lsetIndex, JSON.stringify(articlesForCache));
+}
+
+async function deleteArticleInCache(articleId: number){
+    let allCachedArticlesObj = await redis.lrange(RedisName.ARTICLES, 0, -1);
+    let articleCachedToJson = allCachedArticlesObj.map((data) => JSON.parse(data));
+    let articleToDelete = articleCachedToJson.filter((item) => item['id'] === articleId)[0]
+    await redis.lrem(RedisName.ARTICLES, 1, JSON.stringify(articleToDelete));
 }

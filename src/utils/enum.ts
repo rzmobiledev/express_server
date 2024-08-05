@@ -61,3 +61,22 @@ export const UserLevelEnum = Object.freeze({
     OPERATOR: 3,
     STAFF: 4
 });
+
+export const ArticleEnum = Object.freeze({
+    CREATE: 'create',
+    UPDATE: 'UPDATE',
+    DELETE: 'delete'
+});
+
+export const ChannelName = Object.freeze({
+    ARTICLES: 'articles',
+    ARTICLE_CREATED: 'articleCreated',
+    ARTICLE_UPDATED: 'articleUpdated',
+    ARTICLE_DELETED: 'articleDeleted',
+    USER: 'users'
+})
+
+export const RedisName = Object.freeze({
+    ARTICLES: 'articles',
+    USER: 'users'
+})

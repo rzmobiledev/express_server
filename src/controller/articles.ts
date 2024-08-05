@@ -1,6 +1,7 @@
 import { Response, Request } from "express";
 import * as utils from '../utils/utils';
-import { JWTType, ArticleFieldNoIdNoRoType } from "../utils/type";
+import { JWTType } from "../utils/type";
+import { ChannelName, RedisName } from "../utils/enum";
 const Article = require('../models').Article;
 const Tag = require('../models').Tag;
 
@@ -10,17 +11,19 @@ module.exports = {
 
     async getAllArticles(req: Request, res: Response){
         const error = new utils.ErrResHandler(res);
-        let limit = 10;
-        const pagination = new utils.Pagination(limit, req)
         try{
-            const articles = await Article.findAndCountAll({
-                offset: pagination.getOffset(),
-                limit: pagination.getLimit(),
-                order: [["createdAt", "DESC"]]
+            const articles = await Article.findAll({
+                include: [{
+                    model: Tag,
+                    as: 'tags',
+                }]
             });
-            await utils.redis.set(`articles?page=${pagination.getPage()}`, JSON.stringify(articles), 'EX', 1800); 
+            for(const article of articles){
+                await utils.redis.lpush(RedisName.ARTICLES, JSON.stringify(article))
+            }
             return res.status(200).json(articles);
         }catch(err){
+            console.log(err)
             return error.get_globalError(err)
         }
     },
@@ -37,7 +40,7 @@ module.exports = {
             });
 
             if(!article) return error.get_404_articleNotFound();
-            await utils.redis.set(`articles/${articleId}`, JSON.stringify(article));
+            await utils.redis.lpush(RedisName.ARTICLES, JSON.stringify(article));
             return res.status(200).json(article);
 
         }catch(err){
@@ -50,13 +53,12 @@ module.exports = {
         const success = new utils.ArticleSuccessResHandler(res);
         const bodyParams = new utils.ArticlesBodyParams(req);
         const userAccess: JWTType = res.locals?.auth;
-        const channel = 'articleCreated'
         bodyParams.setUserId(userAccess.id!)
         
         try{
             if(!bodyParams.getCategoryId()) return error.get_404_categoryNotFound();
-            await utils.createChannelBroker(channel, bodyParams);
-            await utils.consumeBroker(channel, utils.createArticle);
+            await utils.createChannelBroker(ChannelName.ARTICLE_CREATED, bodyParams);
+            await utils.consumeBroker(ChannelName.ARTICLE_CREATED, utils.createArticle);
             return success.get_201_articleCreated();
 
         }catch(err){
@@ -67,27 +69,20 @@ module.exports = {
     async updateArticle(req: Request, res: Response){
         const error = new utils.ErrResHandler(res);
         const bodyParams = new utils.ArticlesBodyParams(req);
-        const articleId = req.params.id;
-        const channel = 'articleUpdated'
+        
         try{
             if(!bodyParams.getCategoryId()) return error.get_404_categoryNotFound();
-            const article = await Article.findByPk(articleId, {
-                include: [{
-                    model: Tag,
-                    as: 'tags',
-                }]
-            });
+            const article = await Article.findByPk(bodyParams.getId(), { attributes: ['id']});
             
             if(!article) return error.get_404_articleNotFound();
             const articleTagsObject = JSON.stringify(article?.tags);
             const articleTagsToJson = articleTagsObject ? JSON.parse(articleTagsObject) : [];
             const tagObjectsWithID = utils.assignIdToTagsObject(articleTagsToJson, bodyParams);
             
-            await utils.createChannelBroker(channel, bodyParams);
-            await utils.consumeBroker(channel, utils.updateArticle)
+            await utils.createChannelBroker(ChannelName.ARTICLE_UPDATED, bodyParams);
+            await utils.consumeBroker(ChannelName.ARTICLE_UPDATED, utils.updateArticle)
             
             const response = new utils.ArticlesObjectResponse(req, tagObjectsWithID, articleTagsToJson);
-            utils.redis.del(`articles/${articleId}`);
             return res.status(200).json(response.json())
 
         }catch(err){
@@ -99,12 +94,11 @@ module.exports = {
         const error = new utils.ErrResHandler(res);
         const success = new utils.ArticleSuccessResHandler(res);
         const articleId = Number(req.params.id)
-        const channel = 'articleDeleted'
 
         try{
             const brokerData = { id: articleId}
-            await utils.createChannelBroker(channel, brokerData);
-            await utils.consumeBroker(channel, utils.deleteArticle)
+            await utils.createChannelBroker(ChannelName.ARTICLE_DELETED, brokerData);
+            await utils.consumeBroker(ChannelName.ARTICLE_DELETED, utils.deleteArticle)
             return success.get_200_articleDeleted();
             
         }catch(err){
