@@ -1,12 +1,13 @@
 const fs = require('fs');
 import Redis from 'ioredis';
+import amqplib, { Channel, Connection } from 'amqplib';
 const { mkdir, unlink } = require('node:fs/promises');
 const path = require('path');
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import {NextFunction, Request, Response } from 'express';
 import multer, { FileFilterCallback } from 'multer';
-import { ErrorMsgEnum, PasswordEnum, SuccessMsgEnum, UserLevelEnum } from './enum';
+import { ErrorMsgEnum, PasswordEnum, SuccessMsgEnum, UserLevelEnum, ArticleEnum, RedisName } from './enum';
 import * as types from './type';
 
 
@@ -14,13 +15,20 @@ dotenv.config();
 
 export const redis = new Redis({
     port: Number(process.env.REDIS_PORT),
-    host: process.env.REDIS_HOST
+    host: process.env.REDIS_HOST,
+    username: "default",
+    password: process.env.REDIS_PASS,
+    db: 0
 })
 
+// rabbitmq to be global variables
+export let channel: Channel, connection: Connection
+const {Model} = require('sequelize');
 const User = require("../models").User;
 const Level = require("../models").AuthLevel;
 const Article = require('../models').Article;
 const Tag = require('../models').Tag;
+const ArticleTag = require('../models').ArticleTag;
 const Gallery = require('../models').Gallery;
 const jwt = require("jsonwebtoken");
 
@@ -164,8 +172,8 @@ export async function verifyJWTToken(req: Request, res: Response, next: NextFunc
 
 export async function checkEmailifExists(email: string): Promise<boolean> { 
     const userExists = await User.findOne({
-        where: {email: email}
-           
+        where: {email: email},
+        attributes: ['email']
         });
     return Boolean(userExists)
     
@@ -173,8 +181,8 @@ export async function checkEmailifExists(email: string): Promise<boolean> {
 
 export async function checkLevelifExists(id: number): Promise<boolean> { 
     const userExists = await Level.findOne({
-        where: {id: id}
-           
+        where: {id: id},
+        attributes: ['id']   
         });
     return Boolean(userExists)
     
@@ -229,7 +237,6 @@ export class ErrResHandler implements types.ErrorType{
         const error = 'errors';
         const name = 'name';
         const isForeignKeyError: boolean = name in err && err.name === 'SequelizeForeignKeyConstraintError';
-
         if(error in err) return this.res.status(400).send({message: ErrorMsgEnum.SOFT_DELETED_DETECT});
         else if(isForeignKeyError) return this.res.status(400).send({message: err.parent.detail});
         else if(err instanceof multer.MulterError) return this.res.status(400).send({message: err.message});
@@ -256,9 +263,6 @@ export class ErrResHandler implements types.ErrorType{
     get_400_fieldNotEmpty(): Response {
         return this.res.status(400).send({message: ErrorMsgEnum.FIELD_SHOULDNOT_EMPTY});
     }
-    get_400_roleNotAvailable(): Response {
-        return this.res.status(400).send({message: ErrorMsgEnum.ROLE_UNAVAILABLE});
-    }
     get_401_emailExist(): Response {
         return this.res.status(401).send({message: ErrorMsgEnum.EMAIL_ALREADY_REGISTERED});
     }
@@ -273,6 +277,9 @@ export class ErrResHandler implements types.ErrorType{
     }
     get_401_galleryCantBeDeleted(): Response {
         return this.res.status(401).send({message: ErrorMsgEnum.GALLERY_CANTBE_DELETED});
+    }
+    get_404_roleNotFound(): Response {
+        return this.res.status(405).send({message: ErrorMsgEnum.ROLE_NOT_FOUND})
     }
     get_405_passwdEmpty(): Response {
         return this.res.status(405).send({message: ErrorMsgEnum.PASSWORD_EMPTY})
@@ -312,6 +319,10 @@ export class ArticleSuccessResHandler implements types.ArticleSuccessType {
 
     get_200_articleDeleted(): Response {
         return this.res.status(200).json({message: SuccessMsgEnum.ARTICLE_DELETED})
+    }
+
+    get_201_articleCreated(): Response {
+        return this.res.status(200).json({message: SuccessMsgEnum.ARTICLE_CREATED})
     }
 }
 
@@ -406,6 +417,19 @@ export class ArticlesBodyParams implements types.ArticleMethodGetType{
         this.description = req.body.description;
         this.tags = req.body.tags ?? [];
     }
+
+    json(): types.ArticleFieldType {
+        return {
+            id: this.getId(),
+            userId: this.getUserId(),
+            categoryId: this.getCategoryId(),
+            title: this.getTitle(),
+            subtitle: this.getSubtitle(),
+            description: this.getDescription(),
+            tags: this.getTags(),
+        }
+    }
+
     getId(): number {
         return this.id;
     }
@@ -488,16 +512,20 @@ export class ArticleTags implements types.ArticleTagsType {
     }
 }
 
-export async function createUpdateArticleTags(tagObject: types.TagObject[], article: typeof Article){
-        const isTagExist = tagObject.length > 0;
+export async function createUpdateArticleTags(tagObject: types.TagObjNoId[], article: typeof Article, status: string){
+        const isTagExist = tagObject?.length > 0;
+        const allTags = []
         if(isTagExist){ 
             for(const tagName of tagObject){
                 const [tag, created] = await Tag.findOrCreate({
-                    where: { name: tagName.name }
+                    where: { name: tagName }
                 });
-                article.addTag(tag);
+                allTags.push(tag)
             }
+            await article.setTags(allTags)
         }
+
+        await crudArticleInCache(status, article, allTags);
 }
 
 export function assignIdToTagsObject(articleTags: types.TagObject[], payload: types.ArticleMethodGetType): 
@@ -608,7 +636,7 @@ export function allowSuperAdminAccess(userAccess: types.JWTType): boolean{
     else return false;
 }
 
-export function isAssignUserAccessAllowed(req: Request, userAccess: types.JWTType, user: typeof User): boolean {
+export function isAssignUserRoleAllowed(req: Request, userAccess: types.JWTType, user: typeof User): boolean {
     const { role } = req.body;
     let allowed: boolean = true
 
@@ -619,6 +647,12 @@ export function isAssignUserAccessAllowed(req: Request, userAccess: types.JWTTyp
         allowed = false;
     }
     return allowed;
+}
+
+export async function isRoleUserExist(role: number): Promise<boolean>{
+    const level = await Level.findOne({ where: { level: Number(role)}, attributes: ['level'] });
+    if(level != null) return true
+    return false
 }
 
 export async function deleteImages(imageName: types.GalleryType[]){
@@ -663,7 +697,12 @@ export class Pagination{
     }
 
     private setPage(req: Request){
-        return req.query.page ? (Number(req.query.page) === 0 ? 1 : Number(req.query.page)) : 1;
+        /* 
+        if article?page=0 then it will return (0)
+        if article?page=-1 then it should remains (0) 
+        */
+        const page = Number(req.query.page)
+        return page ? (page <= 0 ? 0 : page - 1) : 0;
     }
 
     private setOffset(){
@@ -681,16 +720,137 @@ export class Pagination{
     }
 }
 
-export async function cacheAllArticlesMiddleware(req: Request, res: Response, next: NextFunction){
+export async function cacheAllArticlesMiddPagination(req: Request, res: Response, next: NextFunction){
     const articlePage = req.query?.page ?? 1;
-    const cachedData = await redis.get(`articles?page=${articlePage}`);
-    if(cachedData) res.status(200).json(JSON.parse(cachedData));
+    const articleInCache = await redis.get(`articles?page=${articlePage}`);
+    if(articleInCache) res.status(200).json(JSON.parse(articleInCache));
     else next();
 }
 
+export async function cacheAllArticlesMiddleware(req: Request, res: Response, next: NextFunction){
+    let limit = 10;
+    const pagination = new Pagination(limit, req);
+    console.log(pagination.getLimit())
+
+    const articleInCache = await redis.lrange(RedisName.ARTICLES, pagination.getPage(), pagination.getLimit());
+    const articleData:any[] = articleInCache.map((data) => JSON.parse(data));
+    if(articleData.length === 0 && pagination.getPage() === 0){
+        next();
+    }
+    else res.status(200).json(articleData);
+}
+
 export async function cacheOneArticleMiddleware(req: Request, res: Response, next: NextFunction){
-    const articleID = req.params?.id;
-    const cachedData = await redis.get(`articles/${articleID}`)
-    if(cachedData) res.status(200).json(JSON.parse(cachedData));
-    else next()
+    const articleID = Number(req.params?.id);
+    const articleInCache = await redis.lrange(RedisName.ARTICLES, 0, -1);
+    if(articleInCache.length > 0) {
+        const articleArrJson = articleInCache.map((data) => JSON.parse(data));
+        const article = articleArrJson.filter((item) => item['id'] === articleID)[0]
+        return res.status(200).json(article);
+    }
+    next()
+}
+
+const RabbitSettings = {
+    protocol: process.env.AMQP_PROTOCOL,
+    hostname: process.env.AMQP_HOST,
+    port: process.env.AMQP_PORT,
+    username: process.env.AMQP_USERNAME,
+    password: process.env.AMQP_PASSWORD,
+    authMechanism: process.env.AMQP_AUTH,
+    vhost: '/',
+    queue: 'test'
+}
+
+export async function startBrokerChannel() {
+  try {
+    const amqpServer = `amqp://${RabbitSettings.hostname}:${RabbitSettings.port}`
+    connection = await amqplib.connect(amqpServer)
+    channel = await connection.createChannel();
+
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+export async function createChannelBroker(channelName: string, data: any){
+    await channel.assertQueue(channelName, { durable: true});
+    channel.sendToQueue(channelName, Buffer.from(JSON.stringify(data)), {
+        persistent: true
+    },);
+}
+
+export async function consumeBroker(channelName: string, callback: CallableFunction){
+    await channel.assertQueue(channelName, { durable: true});
+    return await channel.consume(channelName, async(msg) => {
+        let message = msg?.content.toString();
+        const data = JSON.parse(message!)
+        await callback(data);
+    }, { noAck: true});
+}
+
+export async function createArticle(data: types.ArticleFieldNoIdNoRoType): Promise<void> {
+    const article = await Article.build({
+        userId: Number(data.userId),
+        categoryId: Number(data.categoryId),
+        title: data.title,
+        subtitle: data.subtitle,  
+        description: data.description
+    });
+    await article.save();
+    await createUpdateArticleTags(data.tags, article, ArticleEnum.CREATE);
+}
+
+export async function updateArticle(data: types.ArticleFieldType){
+    await Article.update(data, { where: { id: data.id}});
+    const article = await Article.findByPk(data.id);
+    await createUpdateArticleTags(data.tags, article, ArticleEnum.UPDATE);
+} 
+
+export async function deleteArticle(article: {id: number}){
+    await ArticleTag.destroy({
+        where: {articleId: article.id}
+    });
+    await Article.destroy({
+        where: {id: article.id}
+    });
+
+    await deleteArticleInCache(article.id)
+}
+
+export async function getOneArticle(data: {id: number}){
+    return await Article.findByPk(data.id, {
+        include: [{
+            model: Tag,
+            as: 'tags',
+        }]
+    });
+}
+
+async function crudArticleInCache(status: string, article: typeof Article, allTags: typeof Tag[]){
+    let articlesForCache = article.toJSON();
+    articlesForCache['tags'] = allTags;
+
+    if(status === ArticleEnum.CREATE){
+        await redis.lpush(RedisName.ARTICLES, JSON.stringify(articlesForCache));
+    }
+
+    else if (status === ArticleEnum.UPDATE){
+        await updateArticleInCache(articlesForCache, articlesForCache.id)
+    }
+}
+
+async function updateArticleInCache(articlesForCache: Object, articleId: number){
+    let allCachedArticles = await redis.lrange(RedisName.ARTICLES, 0, -1);
+    let articleCachedToJson = allCachedArticles.map((data) => JSON.parse(data));
+    let articleIndex = articleCachedToJson.findIndex((item) => item['id'] === articleId)
+    const lsetIndex = articleIndex - 1;
+    await redis.lset(RedisName.ARTICLES, lsetIndex, JSON.stringify(articlesForCache));
+}
+
+async function deleteArticleInCache(articleId: number){
+    let allCachedArticlesObj = await redis.lrange(RedisName.ARTICLES, 0, -1);
+    let articleCachedToJson = allCachedArticlesObj.map((data) => JSON.parse(data));
+    let articleToDelete = articleCachedToJson.filter((item) => item['id'] === articleId)[0]
+    await redis.lrem(RedisName.ARTICLES, 1, JSON.stringify(articleToDelete));
 }

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 set -e
 
@@ -24,4 +24,3 @@ npm run start
 echo "================================="
 echo "YOUR SERVER IS UP AND RUNNING NOW"
 echo "================================="
-

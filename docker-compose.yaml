@@ -9,6 +9,8 @@ services:
     depends_on:
       - db
       - redis
+    volumes:
+      - ${PWD}:/app
 
   db:
     container_name: db
@@ -25,8 +27,10 @@ services:
 
   redis:
     container_name: redis-blog
-    image: redis/redis-stack:latest
+    image: redis:7.0
     restart: always
+    env_file:
+      - .env
     ports:
       - 6379:6379
     volumes:

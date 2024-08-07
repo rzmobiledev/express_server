@@ -3,13 +3,13 @@ info:
   description: 'Endpoint Swagger of RzBlog'
   version: '1.0.0'
   title: 'Swagger RzBlog 2.0'
-  termsOfService: 'http://127.0.0.1:5000/api'
+  termsOfService: 'http://127.0.0.1:3000/api'
   contact:
     email: 'rzmobiledev@gmail.com'
   license:
     name: 'Apache 2.0'
     url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
-host: '127.0.0.1:5000'
+host: '127.0.0.1:3000'
 basePath: '/api'
 tags:
   - name: 'Article'
