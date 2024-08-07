@@ -13,20 +13,20 @@ import * as types from './type';
 
 dotenv.config();
 
-export const redis = new Redis({
-    port: Number(process.env.REDIS_PORT),
-    host: process.env.REDIS_HOST,
-    username: "default",
-    password: process.env.REDIS_PASS,
-    db: 0
-})
+export const redis = new Redis(
+    Number(process.env.REDIS_PORT),
+    String(process.env.REDIS_HOST),
+    {
+        password: String(process.env.REDIS_PASSWORD)
+    }
+);
 
 // rabbitmq to be global variables
 export let channel: Channel, connection: Connection
-const {Model} = require('sequelize');
 const User = require("../models").User;
 const Level = require("../models").AuthLevel;
 const Article = require('../models').Article;
+const Category = require('../models').Category;
 const Tag = require('../models').Tag;
 const ArticleTag = require('../models').ArticleTag;
 const Gallery = require('../models').Gallery;
@@ -176,6 +176,15 @@ export async function checkEmailifExists(email: string): Promise<boolean> {
         attributes: ['email']
         });
     return Boolean(userExists)
+    
+}
+
+export async function isCategoryExists(categoryId: number): Promise<boolean> { 
+    const categoryExists = await Category.findOne({
+        where: {id: categoryId},
+        attributes: ['id']
+        });
+    return Boolean(categoryExists)
     
 }
 
@@ -730,7 +739,6 @@ export async function cacheAllArticlesMiddPagination(req: Request, res: Response
 export async function cacheAllArticlesMiddleware(req: Request, res: Response, next: NextFunction){
     let limit = 10;
     const pagination = new Pagination(limit, req);
-    console.log(pagination.getLimit())
 
     const articleInCache = await redis.lrange(RedisName.ARTICLES, pagination.getPage(), pagination.getLimit());
     const articleData:any[] = articleInCache.map((data) => JSON.parse(data));
@@ -752,22 +760,17 @@ export async function cacheOneArticleMiddleware(req: Request, res: Response, nex
 }
 
 const RabbitSettings = {
-    protocol: process.env.AMQP_PROTOCOL,
-    hostname: process.env.AMQP_HOST,
-    port: process.env.AMQP_PORT,
-    username: process.env.AMQP_USERNAME,
-    password: process.env.AMQP_PASSWORD,
-    authMechanism: process.env.AMQP_AUTH,
-    vhost: '/',
-    queue: 'test'
+    hostname: process.env.RABBITMQ_HOST,
+    port: Number(process.env.RABBITMQ_PORT),
+    username: process.env.RABBITMQ_DEFAULT_USER,
+    password: process.env.RABBITMQ_DEFAULT_PASS,
 }
 
 export async function startBrokerChannel() {
   try {
-    const amqpServer = `amqp://${RabbitSettings.hostname}:${RabbitSettings.port}`
-    connection = await amqplib.connect(amqpServer)
+    const amqpServer = `amqp://${RabbitSettings.username}:${RabbitSettings.password}@${RabbitSettings.hostname}`
+    connection = await amqplib.connect(amqpServer, {timeout: 3000});
     channel = await connection.createChannel();
-
   } catch (error) {
     console.log(error);
   }

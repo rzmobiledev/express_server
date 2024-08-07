@@ -14,8 +14,7 @@
         ],
     },
     "include": [
-        "src/**/*",
-        "src/utils/swagger.yaml",
+        "src/**/*"
     ],
     "exclude": [
         "node_modules",
