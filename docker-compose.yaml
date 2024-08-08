@@ -7,10 +7,9 @@ services:
     env_file:
       - .env
     depends_on:
+      - rabbitmq
       - db
       - redis
-    volumes:
-      - ${PWD}:/app
 
   db:
     container_name: db
@@ -29,13 +28,29 @@ services:
     container_name: redis-blog
     image: redis:7.0
     restart: always
-    env_file:
-      - .env
     ports:
-      - 6379:6379
+      - ${REDIS_PORT}:${REDIS_PORT}
     volumes:
       - redisdata:/data
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command: ['redis-server', '--requirepass', '${REDIS_PASSWORD}']
+
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3.8-management
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+    ports:
+      - ${RABBITMQ_PORT}:${RABBITMQ_PORT}
+      - 15672:15672
+    volumes:
+      - rabbitmq:/var/lib/rabbitmq
 
 volumes:
   pgdata:
   redisdata:
+  rabbitmq:

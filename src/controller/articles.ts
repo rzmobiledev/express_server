@@ -23,7 +23,6 @@ module.exports = {
             }
             return res.status(200).json(articles);
         }catch(err){
-            console.log(err)
             return error.get_globalError(err)
         }
     },
@@ -57,6 +56,9 @@ module.exports = {
         
         try{
             if(!bodyParams.getCategoryId()) return error.get_404_categoryNotFound();
+
+            const isCategoryExists = await utils.isCategoryExists(bodyParams.getCategoryId());
+            if(!isCategoryExists) return error.get_404_categoryNotFound(); 
             await utils.createChannelBroker(ChannelName.ARTICLE_CREATED, bodyParams);
             await utils.consumeBroker(ChannelName.ARTICLE_CREATED, utils.createArticle);
             return success.get_201_articleCreated();
