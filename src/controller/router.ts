@@ -1,5 +1,5 @@
 require('dotenv').config();
-import express from 'express';
+import express, {Request} from 'express';
 import { verifyJWTToken, cacheAllArticlesMiddleware, cacheOneArticleMiddleware } from '../utils/utils';
 const UserRoutes = require('./users');
 const LevelRoutes = require('./authlevels');
@@ -13,6 +13,8 @@ const YAML = require('yaml')
 let file  = fs.readFileSync(require.resolve('../utils/swagger.yaml'), {encoding: 'utf8'});
 const swaggerDocument = YAML.parse(file)
 const swaggerUi = require('swagger-ui-express');
+const port: number = Number(process.env.HOST_PORT)
+
 
 // importing controller`
 router.post('/users/login', UserRoutes.login);

@@ -857,3 +857,4 @@ async function deleteArticleInCache(articleId: number){
     let articleToDelete = articleCachedToJson.filter((item) => item['id'] === articleId)[0]
     await redis.lrem(RedisName.ARTICLES, 1, JSON.stringify(articleToDelete));
 }
+
