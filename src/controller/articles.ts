@@ -5,8 +5,6 @@ import { ChannelName, RedisName } from "../utils/enum";
 const Article = require('../models').Article;
 const Tag = require('../models').Tag;
 
-
-
 module.exports = {
 
     async getAllArticles(req: Request, res: Response){
